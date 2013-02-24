@@ -2987,7 +2987,7 @@ static int mdp4_calc_pipe_mdp_bw(struct msm_fb_data_type *mfd,
 	}
 
 	fps = mdp_get_panel_framerate(mfd);
-	quota = pipe->src_w * pipe->src_h * fps * pipe->bpp;
+	quota = pipe->src_w * pipe->src_h * fps * pipe->bpp * 2;
 
 	quota >>= shift;
 	/* factor 1.15 for ab */
