@@ -48,6 +48,8 @@
 #include <asm/mach-types.h>
 #include "msm_serial_hs_hwreg.h"
 
+static bool msm_console_disabled = true;
+
 struct msm_hsl_port {
 	struct uart_port	uart;
 	char			name[16];
@@ -263,6 +265,9 @@ static void msm_hsl_stop_tx(struct uart_port *port)
 static void msm_hsl_start_tx(struct uart_port *port)
 {
 	struct msm_hsl_port *msm_hsl_port = UART_TO_MSM(port);
+
+	if (is_console(port) && msm_console_disabled)
+		return;
 
 	clk_en(port, 1);
 
@@ -498,6 +503,9 @@ static unsigned int msm_hsl_tx_empty(struct uart_port *port)
 {
 	unsigned int vid = UART_TO_MSM(port)->ver_id;
 	unsigned int ret;
+
+	if (is_console(port) && msm_console_disabled)
+		return 1;
 
 	clk_en(port, 1);
 	ret = (msm_hsl_read(port, regmap[vid][UARTDM_SR]) &
@@ -1171,6 +1179,9 @@ static void msm_hsl_console_write(struct console *co, const char *s,
 	int locked;
 
 	BUG_ON(co->index < 0 || co->index >= UART_NR);
+
+	if (msm_console_disabled)
+		return;
 
 	port = get_port_from_line(co->index);
 	msm_hsl_port = UART_TO_MSM(port);
