@@ -54,12 +54,12 @@ static struct asmp_param_struct {
 	unsigned int cycle_up;
 	unsigned int cycle_down;
 } asmp_param = {
-	.delay = 100,
+	.delay = 500,
 	.scroff_single_core = false,
 	.max_cpus = CONFIG_NR_CPUS,
 	.min_cpus = 1,
-	.cpufreq_up = 900, //MHz
-	.cpufreq_down = 500, //MHz
+	.cpufreq_up = 1188, //MHz
+	.cpufreq_down = 811, //MHz
 	.cycle_up = 1,
 	.cycle_down = 3,
 };
@@ -94,7 +94,7 @@ static void __cpuinit asmp_work_fn(struct work_struct *work) {
 	fast_rate /= 1000;
 
 	/* hotplug one core if all online cores are over up freq limit */
-	if (slow_rate > asmp_param.cpufreq_up) {
+	if (slow_rate >= asmp_param.cpufreq_up) {
 		if ((nr_cpu_online < asmp_param.max_cpus) && 
 		    (cycle >= asmp_param.cycle_up)) {
 			cpu = cpumask_next_zero(0, cpu_online_mask);
