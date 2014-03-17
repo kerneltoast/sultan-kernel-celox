@@ -6357,7 +6357,7 @@ static struct genl_ops nl80211_ops[] = {
 		.doit = nl80211_register_beacons,
 		.policy = nl80211_policy,
 		.flags = GENL_ADMIN_PERM,
-		.internal_flags = NL80211_FLAG_NEED_WIPHY |
+		.internal_flags = NL80211_FLAG_NEED_NETDEV |
 				  NL80211_FLAG_NEED_RTNL,
 	},
 };
