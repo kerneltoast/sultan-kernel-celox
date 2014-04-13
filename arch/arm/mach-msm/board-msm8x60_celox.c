@@ -16766,6 +16766,10 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			machine_is_msm8x60_fluid() ||
 			machine_is_msm8x60_dragon())
 		msm8x60_init_ebi2();
+
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
+	set_two_phase_freq(1080000);
+#endif
 	msm8x60_init_tlmm();
 #ifdef CONFIG_BATTERY_SEC
 	if(is_lpm_boot)
