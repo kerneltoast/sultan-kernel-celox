@@ -121,14 +121,6 @@
 #define DBG_BUS_VEC_I_REG			REG_MM(0x01E8)
 #define DBG_CFG_REG_HS_REG			REG_MM(0x01B4)
 #define DBG_CFG_REG_LS_REG			REG_MM(0x01B8)
-#define GFX2D0_CC_REG				REG_MM(0x0060)
-#define GFX2D0_MD0_REG				REG_MM(0x0064)
-#define GFX2D0_MD1_REG				REG_MM(0x0068)
-#define GFX2D0_NS_REG				REG_MM(0x0070)
-#define GFX2D1_CC_REG				REG_MM(0x0074)
-#define GFX2D1_MD0_REG				REG_MM(0x0078)
-#define GFX2D1_MD1_REG				REG_MM(0x006C)
-#define GFX2D1_NS_REG				REG_MM(0x007C)
 #define GFX3D_CC_REG				REG_MM(0x0080)
 #define GFX3D_MD0_REG				REG_MM(0x0084)
 #define GFX3D_MD1_REG				REG_MM(0x0088)
@@ -802,38 +794,6 @@ static struct branch_clk dsi_s_p_clk = {
 		.dbg_name = "dsi_s_p_clk",
 		.ops = &clk_ops_branch,
 		CLK_INIT(dsi_s_p_clk.c),
-	},
-};
-
-static struct branch_clk gfx2d0_p_clk = {
-	.b = {
-		.ctl_reg = AHB_EN_REG,
-		.en_mask = BIT(19),
-		.reset_reg = SW_RESET_AHB_REG,
-		.reset_mask = BIT(12),
-		.halt_reg = DBG_BUS_VEC_F_REG,
-		.halt_bit = 2,
-	},
-	.c = {
-		.dbg_name = "gfx2d0_p_clk",
-		.ops = &clk_ops_branch,
-		CLK_INIT(gfx2d0_p_clk.c),
-	},
-};
-
-static struct branch_clk gfx2d1_p_clk = {
-	.b = {
-		.ctl_reg = AHB_EN_REG,
-		.en_mask = BIT(2),
-		.reset_reg = SW_RESET_AHB_REG,
-		.reset_mask = BIT(11),
-		.halt_reg = DBG_BUS_VEC_F_REG,
-		.halt_bit = 3,
-	},
-	.c = {
-		.dbg_name = "gfx2d1_p_clk",
-		.ops = &clk_ops_branch,
-		CLK_INIT(gfx2d1_p_clk.c),
 	},
 };
 
@@ -2234,116 +2194,6 @@ static struct branch_clk dsi_esc_clk = {
 	},
 };
 
-#define F_GFX2D(f, s, m, n) \
-	{ \
-		.freq_hz = f, \
-		.src_clk = &s##_clk.c, \
-		.md_val = MD4(4, m, 0, n), \
-		.ns_val = NS_MND_BANKED4(20, 16, n, m, 3, 0, s##_to_mm_mux), \
-		.ctl_val = CC_BANKED(9, 6, n), \
-		.mnd_en_mask = (BIT(8) | BIT(5)) * !!(n), \
-	}
-static struct clk_freq_tbl clk_tbl_gfx2d[] = {
-	F_GFX2D(        0, gnd,  0,  0),
-	F_GFX2D( 27000000, pxo,  0,  0),
-	F_GFX2D( 48000000, pll8, 1,  8),
-	F_GFX2D( 54857000, pll8, 1,  7),
-	F_GFX2D( 64000000, pll8, 1,  6),
-	F_GFX2D( 76800000, pll8, 1,  5),
-	F_GFX2D( 96000000, pll8, 1,  4),
-	F_GFX2D(128000000, pll8, 1,  3),
-	F_GFX2D(145455000, pll2, 2, 11),
-	F_GFX2D(160000000, pll2, 1,  5),
-	F_GFX2D(177778000, pll2, 2,  9),
-	F_GFX2D(200000000, pll2, 1,  4),
-	F_GFX2D(228571000, pll2, 2,  7),
-	F_END
-};
-
-static struct bank_masks bmnd_info_gfx2d0 = {
-	.bank_sel_mask =			BIT(11),
-	.bank0_mask = {
-			.md_reg =		GFX2D0_MD0_REG,
-			.ns_mask =		BM(23, 20) | BM(5, 3),
-			.rst_mask =		BIT(25),
-			.mnd_en_mask =		BIT(8),
-			.mode_mask =		BM(10, 9),
-	},
-	.bank1_mask = {
-			.md_reg =		GFX2D0_MD1_REG,
-			.ns_mask =		BM(19, 16) | BM(2, 0),
-			.rst_mask =		BIT(24),
-			.mnd_en_mask =		BIT(5),
-			.mode_mask =		BM(7, 6),
-	},
-};
-
-static struct rcg_clk gfx2d0_clk = {
-	.b = {
-		.ctl_reg = GFX2D0_CC_REG,
-		.en_mask = BIT(0),
-		.reset_reg = SW_RESET_CORE_REG,
-		.reset_mask = BIT(14),
-		.halt_reg = DBG_BUS_VEC_A_REG,
-		.halt_bit = 9,
-	},
-	.ns_reg = GFX2D0_NS_REG,
-	.root_en_mask = BIT(2),
-	.set_rate = set_rate_mnd_banked,
-	.freq_tbl = clk_tbl_gfx2d,
-	.bank_info = &bmnd_info_gfx2d0,
-	.current_freq = &rcg_dummy_freq,
-	.c = {
-		.dbg_name = "gfx2d0_clk",
-		.ops = &clk_ops_rcg_8x60,
-		VDD_DIG_FMAX_MAP3(LOW,  100000000, NOMINAL, 200000000,
-				  HIGH, 228571000),
-		CLK_INIT(gfx2d0_clk.c),
-	},
-};
-
-static struct bank_masks bmnd_info_gfx2d1 = {
-	.bank_sel_mask =		BIT(11),
-	.bank0_mask = {
-			.md_reg =		GFX2D1_MD0_REG,
-			.ns_mask =		BM(23, 20) | BM(5, 3),
-			.rst_mask =		BIT(25),
-			.mnd_en_mask =		BIT(8),
-			.mode_mask =		BM(10, 9),
-	},
-	.bank1_mask = {
-			.md_reg =		GFX2D1_MD1_REG,
-			.ns_mask =		BM(19, 16) | BM(2, 0),
-			.rst_mask =		BIT(24),
-			.mnd_en_mask =		BIT(5),
-			.mode_mask =		BM(7, 6),
-	},
-};
-
-static struct rcg_clk gfx2d1_clk = {
-	.b = {
-		.ctl_reg = GFX2D1_CC_REG,
-		.en_mask = BIT(0),
-		.reset_reg = SW_RESET_CORE_REG,
-		.reset_mask = BIT(13),
-		.halt_reg = DBG_BUS_VEC_A_REG,
-		.halt_bit = 14,
-	},
-	.ns_reg = GFX2D1_NS_REG,
-	.root_en_mask = BIT(2),
-	.set_rate = set_rate_mnd_banked,
-	.freq_tbl = clk_tbl_gfx2d,
-	.bank_info = &bmnd_info_gfx2d1,
-	.current_freq = &rcg_dummy_freq,
-	.c = {
-		.dbg_name = "gfx2d1_clk",
-		.ops = &clk_ops_rcg_8x60,
-		VDD_DIG_FMAX_MAP3(LOW,  100000000, NOMINAL, 200000000,
-				  HIGH, 228571000),
-		CLK_INIT(gfx2d1_clk.c),
-	},
-};
-
 #define F_GFX3D(f, s, m, n) \
 	{ \
 		.freq_hz = f, \
@@ -3332,8 +3182,6 @@ static struct measure_sel measure_mux[] = {
 	{ TEST_MM_LS(0x08), &csi1_p_clk.c },
 	{ TEST_MM_LS(0x09), &dsi_m_p_clk.c },
 	{ TEST_MM_LS(0x0A), &dsi_s_p_clk.c },
-	{ TEST_MM_LS(0x0C), &gfx2d0_p_clk.c },
-	{ TEST_MM_LS(0x0D), &gfx2d1_p_clk.c },
 	{ TEST_MM_LS(0x0E), &gfx3d_p_clk.c },
 	{ TEST_MM_LS(0x0F), &hdmi_m_p_clk.c },
 	{ TEST_MM_LS(0x10), &hdmi_s_p_clk.c },
@@ -3362,8 +3210,6 @@ static struct measure_sel measure_mux[] = {
 	{ TEST_MM_HS(0x04), &csi1_vfe_clk.c },
 	{ TEST_MM_HS(0x05), &ijpeg_clk.c },
 	{ TEST_MM_HS(0x06), &vfe_clk.c },
-	{ TEST_MM_HS(0x07), &gfx2d0_clk.c },
-	{ TEST_MM_HS(0x08), &gfx2d1_clk.c },
 	{ TEST_MM_HS(0x09), &gfx3d_clk.c },
 	{ TEST_MM_HS(0x0A), &jpegd_clk.c },
 	{ TEST_MM_HS(0x0B), &vcodec_clk.c },
@@ -3738,10 +3584,6 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("csi_src_clk",	csi_src_clk.c,		"msm_csic.1"),
 	CLK_LOOKUP("dsi_byte_div_clk",	dsi_byte_clk.c,		NULL),
 	CLK_LOOKUP("dsi_esc_clk",	dsi_esc_clk.c,		NULL),
-	CLK_LOOKUP("core_clk",		gfx2d0_clk.c,	"kgsl-2d0.0"),
-	CLK_LOOKUP("core_clk",		gfx2d0_clk.c,	"footswitch-8x60.0"),
-	CLK_LOOKUP("core_clk",		gfx2d1_clk.c,	"kgsl-2d1.1"),
-	CLK_LOOKUP("core_clk",		gfx2d1_clk.c,	"footswitch-8x60.1"),
 	CLK_LOOKUP("core_clk",		gfx3d_clk.c,	"kgsl-3d0.0"),
 	CLK_LOOKUP("core_clk",		gfx3d_clk.c,	"footswitch-8x60.2"),
 	CLK_LOOKUP("ijpeg_clk",		ijpeg_clk.c,		NULL),
@@ -3797,10 +3639,6 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("csi_pclk",		csi1_p_clk.c,		"msm_csic.1"),
 	CLK_LOOKUP("dsi_m_pclk",	dsi_m_p_clk.c,		NULL),
 	CLK_LOOKUP("dsi_s_pclk",	dsi_s_p_clk.c,		NULL),
-	CLK_LOOKUP("iface_clk",		gfx2d0_p_clk.c,	"kgsl-2d0.0"),
-	CLK_LOOKUP("iface_clk",		gfx2d0_p_clk.c,	"footswitch-8x60.0"),
-	CLK_LOOKUP("iface_clk",		gfx2d1_p_clk.c,	"kgsl-2d1.1"),
-	CLK_LOOKUP("iface_clk",		gfx2d1_p_clk.c,	"footswitch-8x60.1"),
 	CLK_LOOKUP("iface_clk",		gfx3d_p_clk.c,	"kgsl-3d0.0"),
 	CLK_LOOKUP("iface_clk",		gfx3d_p_clk.c,	"footswitch-8x60.2"),
 	CLK_LOOKUP("master_iface_clk",	hdmi_m_p_clk.c,	"hdmi_msm.1"),
@@ -3842,8 +3680,6 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		vcodec_axi_clk.c,	"msm_iommu.7"),
 	CLK_LOOKUP("core_clk",		vcodec_axi_clk.c,	"msm_iommu.8"),
 	CLK_LOOKUP("core_clk",		gfx3d_clk.c,		"msm_iommu.9"),
-	CLK_LOOKUP("core_clk",		gfx2d0_clk.c,		"msm_iommu.10"),
-	CLK_LOOKUP("core_clk",		gfx2d1_clk.c,		"msm_iommu.11"),
 
 	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"msm_vidc.0"),
 	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"msm_vidc.0"),
@@ -3926,8 +3762,6 @@ static void __init reg_init(void)
 	rmwreg(0x00000000, CSI_CC_REG,    0x00000018);
 	rmwreg(0x00000400, MISC_CC_REG,   0x017C0400);
 	rmwreg(0x000007FD, MISC_CC2_REG,  0x70C2E7FF);
-	rmwreg(0x80FF0000, GFX2D0_CC_REG, 0xE0FF0010);
-	rmwreg(0x80FF0000, GFX2D1_CC_REG, 0xE0FF0010);
 	rmwreg(0x80FF0000, GFX3D_CC_REG,  0xE0FF0010);
 	rmwreg(0x80FF0000, IJPEG_CC_REG,  0xE0FF0018);
 	rmwreg(0x80FF0000, JPEGD_CC_REG,  0xE0FF0018);
@@ -3982,10 +3816,6 @@ static void __init msm8660_clock_init(void)
 	}
 
 	vote_vdd_level(&vdd_dig, VDD_DIG_HIGH);
-	/* Copy gfx2d's frequency table because it's modified by both clocks */
-	gfx2d1_clk.freq_tbl = kmemdup(clk_tbl_gfx2d,
-			sizeof(struct clk_freq_tbl) * ARRAY_SIZE(clk_tbl_gfx2d),
-			GFP_KERNEL);
 
 	/* Initialize clock registers. */
 	reg_init();
