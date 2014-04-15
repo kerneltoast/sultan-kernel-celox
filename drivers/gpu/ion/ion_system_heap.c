@@ -2,7 +2,7 @@
  * drivers/gpu/ion/ion_system_heap.c
  *
  * Copyright (C) 2011 Google, Inc.
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -27,6 +27,7 @@
 #include "ion_priv.h"
 #include <mach/memory.h>
 #include <asm/cacheflush.h>
+#include <linux/dma-mapping.h>
 
 static atomic_t system_heap_allocated;
 static atomic_t system_contig_heap_allocated;
@@ -151,15 +152,26 @@ int ion_system_heap_cache_ops(struct ion_heap *heap, struct ion_buffer *buffer,
 
 	switch (cmd) {
 	case ION_IOC_CLEAN_CACHES:
-		dmac_clean_range(vaddr, vaddr + length);
+		if (!vaddr)
+			dma_sync_sg_for_device(NULL, buffer->sglist, 1, DMA_TO_DEVICE);
+		else
+			dmac_clean_range(vaddr, vaddr + length);
 		outer_cache_op = outer_clean_range;
 		break;
 	case ION_IOC_INV_CACHES:
-		dmac_inv_range(vaddr, vaddr + length);
+		if (!vaddr)
+			dma_sync_sg_for_cpu(NULL, buffer->sglist, 1, DMA_FROM_DEVICE);
+		else
+			dmac_inv_range(vaddr, vaddr + length);
 		outer_cache_op = outer_inv_range;
 		break;
 	case ION_IOC_CLEAN_INV_CACHES:
-		dmac_flush_range(vaddr, vaddr + length);
+		if (!vaddr) {
+			dma_sync_sg_for_device(NULL, buffer->sglist, 1, DMA_TO_DEVICE);
+			dma_sync_sg_for_cpu(NULL, buffer->sglist, 1, DMA_FROM_DEVICE);
+		} else {
+			dmac_flush_range(vaddr, vaddr + length);
+		}
 		outer_cache_op = outer_flush_range;
 		break;
 	default:
