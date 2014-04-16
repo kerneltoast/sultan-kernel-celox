@@ -4106,6 +4106,8 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		break;
 
 	case MSMFB_DISPLAY_COMMIT:
+	/* MSMFB_DISPLAY_COMMIT ioctl hack -- Sultanxda Apr 15, 2014 */
+	case 0x40a46da4:
 		ret = msmfb_display_commit(info, argp);
 		break;
 
