@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -56,24 +56,21 @@ struct hdmi_msm_cec_msg {
 struct hdmi_msm_state_type {
 	boolean panel_power_on;
 	boolean hpd_initialized;
-	boolean hpd_state_in_isr;
 #ifdef CONFIG_SUSPEND
 	boolean pm_suspended;
 #endif
 	boolean hpd_cable_chg_detected;
-	struct work_struct hpd_state_work;
-	struct timer_list hpd_state_timer;
-	struct completion ddc_sw_done;
-
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT
 	boolean full_auth_done;
 	boolean hpd_during_auth;
+	struct work_struct hpd_state_work;
+	struct completion ddc_sw_done;
+
+	bool hdcp_enable;
 	boolean hdcp_activating;
 	boolean reauth ;
 	struct work_struct hdcp_reauth_work, hdcp_work;
 	struct completion hdcp_success_done;
 	struct timer_list hdcp_timer;
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT */
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
 	boolean cec_enabled;
@@ -100,7 +97,7 @@ struct hdmi_msm_state_type {
 
 #define CEC_QUEUE_SIZE		16
 #define CEC_QUEUE_END	 (hdmi_msm_state->cec_queue_start + CEC_QUEUE_SIZE)
-#define RETRANSMIT_MAX_NUM	7
+#define RETRANSMIT_MAX_NUM	5
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
 
 	int irq;
@@ -117,9 +114,9 @@ struct hdmi_msm_state_type {
 		defined(CONFIG_VIDEO_MHL_TAB_V2)
 	boolean mhl_hpd_state;
 #endif
-	struct switch_dev	hdmi_audio_switch;
-	struct switch_dev	hdmi_audio_ch;
 	boolean	boot_completion;
+
+	struct completion hpd_event_processed;
 };
 
 extern struct hdmi_msm_state_type *hdmi_msm_state;
@@ -133,7 +130,7 @@ void hdmi_phy_reset(void);
 void hdmi_msm_reset_core(void);
 void hdmi_msm_init_phy(int video_format);
 void hdmi_msm_powerdown_phy(void);
-void hdmi_frame_ctrl_cfg(const struct hdmi_disp_mode_timing_type *timing);
+void hdmi_frame_ctrl_cfg(const struct msm_hdmi_mode_timing_info *timing);
 void hdmi_msm_phy_status_poll(void);
 #endif
 

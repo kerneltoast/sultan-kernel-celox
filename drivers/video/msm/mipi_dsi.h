@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -117,6 +117,7 @@ enum dsi_trigger_type {
 #define DSI_INTR_CMD_DMA_DONE_MASK	BIT(1)
 #define DSI_INTR_CMD_DMA_DONE		BIT(0)
 
+#define DSI_VIDEO_TERM	BIT(16)
 #define DSI_MDP_TERM	BIT(8)
 #define DSI_CMD_TERM	BIT(0)
 
@@ -266,6 +267,7 @@ typedef void (*fxn)(u32 data);
 #define CMD_REQ_RX	0x0001
 #define CMD_REQ_COMMIT 0x0002
 #define CMD_REQ_NO_MAX_PKT_SIZE 0x0008
+#define CMD_REQ_SINGLE_TX 0x0010
 
 struct dcs_cmd_req {
 	struct dsi_cmd_desc *cmds;
@@ -291,6 +293,8 @@ void mipi_dsi_bist_ctrl(void);
 int mipi_dsi_buf_alloc(struct dsi_buf *, int size);
 int mipi_dsi_cmd_dma_add(struct dsi_buf *dp, struct dsi_cmd_desc *cm);
 int mipi_dsi_cmds_tx(struct dsi_buf *dp, struct dsi_cmd_desc *cmds, int cnt);
+int mipi_dsi_cmds_single_tx(struct dsi_buf *dp, struct dsi_cmd_desc *cmds,
+								int cnt);
 
 int mipi_dsi_cmd_dma_tx(struct dsi_buf *dp);
 int mipi_dsi_cmd_reg_tx(uint32 data);
@@ -321,7 +325,7 @@ void mipi_dsi_pre_kickoff_del(struct dsi_kickoff_action *act);
 void mipi_dsi_post_kickoff_del(struct dsi_kickoff_action *act);
 void mipi_dsi_controller_cfg(int enable);
 void mipi_dsi_sw_reset(void);
-void mipi_dsi_mdp_busy_wait(struct msm_fb_data_type *mfd);
+void mipi_dsi_mdp_busy_wait(void);
 
 irqreturn_t mipi_dsi_isr(int irq, void *ptr);
 

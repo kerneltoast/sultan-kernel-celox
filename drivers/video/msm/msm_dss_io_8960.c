@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,6 +11,7 @@
  *
  */
 #include <linux/clk.h>
+#include <mach/clk.h>
 #include "msm_fb.h"
 #include "mdp.h"
 #include "mdp4.h"
@@ -749,6 +750,10 @@ void hdmi_msm_reset_core(void)
 	hdmi_msm_clk(0);
 	udelay(5);
 	hdmi_msm_clk(1);
+
+	clk_reset(hdmi_msm_state->hdmi_app_clk, CLK_RESET_ASSERT);
+	udelay(20);
+	clk_reset(hdmi_msm_state->hdmi_app_clk, CLK_RESET_DEASSERT);
 }
 
 void hdmi_msm_init_phy(int video_format)
@@ -774,7 +779,7 @@ void hdmi_msm_powerdown_phy(void)
 	HDMI_OUTP_ND(HDMI_PHY_REG_2, 0x7F); /*0b01111111*/
 }
 
-void hdmi_frame_ctrl_cfg(const struct hdmi_disp_mode_timing_type *timing)
+void hdmi_frame_ctrl_cfg(const struct msm_hdmi_mode_timing_info *timing)
 {
 	/*  0x02C8 HDMI_FRAME_CTRL
 	 *  31 INTERLACED_EN   Interlaced or progressive enable bit

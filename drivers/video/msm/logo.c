@@ -149,10 +149,10 @@ int load_565rle_image(char *filename, bool bf_supported)
 #ifndef CONFIG_FRAMEBUFFER_CONSOLE 
 	owner = info->fbops->owner; 
 	if (!try_module_get(owner)) 
-		return NULL; 
+		return 0; 
 	if (info->fbops->fb_open && info->fbops->fb_open(info, 0)) { 
 		module_put(owner); 
-		return NULL; 
+		return 0; 
 	}
 #endif
 	fd = sys_open(filename, O_RDONLY, 0);
@@ -197,11 +197,12 @@ printk("%s: max %d, n %d 0x%x\n",__func__, max, ptr[0], (unsigned int)bits);
 		ptr += 2;
 		count -= 4;
 	}
+#ifdef CONFIG_SEC_DEBUG
 #if !defined (CONFIG_USA_OPERATOR_ATT) && !defined (CONFIG_JPN_MODEL_SC_03D) && !defined (CONFIG_CAN_OPERATOR_RWC)
 	if (!is_lpcharging_state() && !sec_debug_is_recovery_mode())
 		s3cfb_start_progress(info);
 #endif
-
+#endif
 err_logo_free_data:
 	kfree(data);
 err_logo_close_file:
@@ -264,16 +265,18 @@ int load_565rle_image(char *filename, bool bf_supported)
 		       __func__, __LINE__, info->node);
 		goto err_logo_free_data;
 	}
-	bits = (unsigned short *)(info->screen_base);
-	while (count > 3) {
-		unsigned n = ptr[0];
-		if (n > max)
-			break;
-		memset16(bits, ptr[1], n << 1);
-		bits += n;
-		max -= n;
-		ptr += 2;
-		count -= 4;
+	if (info->screen_base) {
+		bits = (unsigned short *)(info->screen_base);
+		while (count > 3) {
+			unsigned n = ptr[0];
+			if (n > max)
+				break;
+			memset16(bits, ptr[1], n << 1);
+			bits += n;
+			max -= n;
+			ptr += 2;
+			count -= 4;
+		}
 	}
 
 err_logo_free_data:

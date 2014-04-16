@@ -460,6 +460,13 @@ config FB_MSM_LCDC_LD9040_WVGA_PANEL
 	---help---
 	  Support for LCDC LD9040 WVGA (480x800) panel
 
+config FB_MSM_LCDC_S6E63M0_WVGA_PANEL
+    depends on FB_MSM_LCDC_HW
+    bool "LCDC S6B63M0 WVGA Panel"
+    select FB_MSM_LCDC_S6E63M0_WVGA
+    ---help---
+      Support for LCDC S6E63M0 WVGA (480x800) panel
+
 config FB_MSM_LCDC_GORDON_VGA_PANEL
 	depends on FB_MSM_LCDC_HW
 	bool "LCDC Gordon VGA Panel"
@@ -737,6 +744,16 @@ config FB_MSM_HDMI_3D
 	bool
 	default n
 
+config S6E63M0_EARLY_SUSPEND
+    depends on FB_MSM_LCDC_S6E63M0_WVGA_PANEL
+    bool "Enable S6E63M0 early_suspend and late_resume logic"
+    default n
+    ---help---
+    Use the S6E63M0 early_suspend and late_resume logic.
+    This is probably handled by the system board, so shouldn't be necessary.
+
+    If unsure, say 'n'.
+
 config FB_MSM_HDMI_ADV7520_PANEL
 	depends on FB_MSM_MDP40 && FB_MSM_OVERLAY
         bool "LCDC HDMI ADV7520 720p Panel"
@@ -773,14 +790,6 @@ config FB_MSM_HDMI_MSM_PANEL_DVI_SUPPORT
 	default n
 	---help---
 	  Support for DVI mode for MSM HDMI 1080p Panel
-
-config FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT
-	depends on FB_MSM_HDMI_MSM_PANEL
-	bool "Use HDCP mode"
-	default y
-	---help---
-	  Support for HDCP mode for MSM HDMI 1080p Panel
-	  Choose to enable HDCP
 
 config FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
 	depends on FB_MSM_HDMI_MSM_PANEL
