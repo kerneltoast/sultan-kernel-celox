@@ -4076,12 +4076,13 @@ static void __init msm8x60_init_dsps(void)
 /* Memory map */
 #define MSM_ION_HEAP_NUM	8
 
-#define MSM_FB_SIZE 		0x500000
+#define MSM_FB_SIZE roundup((roundup((800 * 480 * 4), 4096) * 3) + \
+				(roundup((1920 * 1080 * 2), 4096) * 2), 4096)
 #define MSM_SMI_SIZE            0x4000000
 #define MSM_ION_SF_SIZE		0x2A00000
 #define MSM_ION_CAMERA_SIZE	0x1200000
 #define MSM_ION_MM_FW_SIZE	0x200000
-#define MSM_ION_MM_SIZE		0x3500000
+#define MSM_ION_MM_SIZE		0x3A00000
 #define MSM_ION_MFC_SIZE	0x100000
 #define MSM_ION_WB_SIZE		0x300000
 #define MSM_ION_AUDIO_SIZE	0x4CF000
@@ -4089,19 +4090,14 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_SMI_BASE            0x38000000
 #define MSM_ION_MM_FW_BASE	MSM_SMI_BASE
 #define MSM_ION_MM_BASE		0x38200000
-#define MSM_ION_MFC_BASE	0x3B700000
-#define MSM_ION_WB_BASE		0x3B800000
-#define MSM_FB_BASE		0x3BB00000
+#define MSM_ION_MFC_BASE	0x3BC00000
+#define MSM_ION_WB_BASE		0x3BD00000
 
 static struct resource msm_fb_resources[] = {
 	{
 		.flags  = IORESOURCE_DMA,
 	}
 };
-
-#ifdef CONFIG_VIDEO_MHL_V2
-static void set_mdp_clocks_for_wuxga(void);
-#endif
 
 static int msm_fb_detect_panel(const char *name)
 {
@@ -5072,13 +5068,16 @@ static struct platform_device mipi_dsi_s6e8aa0_hd720_panel_device = {
 
 static void __init msm8x60_allocate_memory_regions(void)
 {
+	void *addr;
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-	msm_fb_resources[0].start = MSM_FB_BASE;
+
+	addr = alloc_bootmem_align(size, 0x1000);
+	msm_fb_resources[0].start = __pa(addr);
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
-		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
+	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
+		size, addr, __pa(addr));
 }
 
 void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
@@ -15377,25 +15376,6 @@ static struct msm_bus_vectors dtv_bus_def_vectors[] = {
 	},
 };
 
-static struct msm_bus_vectors dtv_bus_hdmi_prim_vectors[] = {
-	/* For now, 0th array entry is reserved.
-	 * Please leave 0 as is and don't use it
-	 */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 2000000000,
-		.ib = 2000000000,
-	},
-	/* Master and slaves can be from different fabrics */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 2000000000,
-		.ib = 2000000000,
-	},
-};
-
 static struct msm_bus_paths dtv_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(dtv_bus_init_vectors),
@@ -15418,27 +15398,6 @@ static struct lcdc_platform_data dtv_pdata = {
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	.lcdc_power_save = hdmi_panel_power,
 #endif
-};
-
-static struct msm_bus_paths dtv_hdmi_prim_bus_scale_usecases[] = {
-	{
-		ARRAY_SIZE(dtv_bus_init_vectors),
-		dtv_bus_init_vectors,
-	},
-	{
-		ARRAY_SIZE(dtv_bus_hdmi_prim_vectors),
-		dtv_bus_hdmi_prim_vectors,
-	},
-};
-
-static struct msm_bus_scale_pdata dtv_hdmi_prim_bus_scale_pdata = {
-	dtv_hdmi_prim_bus_scale_usecases,
-	ARRAY_SIZE(dtv_hdmi_prim_bus_scale_usecases),
-	.name = "dtv",
-};
-
-static struct lcdc_platform_data dtv_hdmi_prim_pdata = {
-	.bus_scale_table = &dtv_hdmi_prim_bus_scale_pdata,
 };
 #endif
 
@@ -15677,42 +15636,6 @@ static void __init msm_fb_add_devices(void)
 	msm_fb_register_device("tvout_device", NULL);
 #endif
 }
-
-#ifdef CONFIG_VIDEO_MHL_V2
-/**
- * Set MDP clocks to high frequency to avoid underflow when
- * using high resolution 1200x1920 WUXGA/HDMI as primary panels
- */
-static void set_mdp_clocks_for_wuxga(void)
-{
-	mdp_sd_smi_vectors[0].ab = 2000000000;
-	mdp_sd_smi_vectors[0].ib = 2000000000;
-	mdp_sd_smi_vectors[1].ab = 2000000000;
-	mdp_sd_smi_vectors[1].ib = 2000000000;
-
-	mdp_sd_ebi_vectors[0].ab = 2000000000;
-	mdp_sd_ebi_vectors[0].ib = 2000000000;
-	mdp_sd_ebi_vectors[1].ab = 2000000000;
-	mdp_sd_ebi_vectors[1].ib = 2000000000;
-
-	mdp_vga_vectors[0].ab = 2000000000;
-	mdp_vga_vectors[0].ib = 2000000000;
-	mdp_vga_vectors[1].ab = 2000000000;
-	mdp_vga_vectors[1].ib = 2000000000;
-
-	mdp_720p_vectors[0].ab = 2000000000;
-	mdp_720p_vectors[0].ib = 2000000000;
-	mdp_720p_vectors[1].ab = 2000000000;
-	mdp_720p_vectors[1].ib = 2000000000;
-
-	mdp_1080p_vectors[0].ab = 2000000000;
-	mdp_1080p_vectors[0].ib = 2000000000;
-	mdp_1080p_vectors[1].ab = 2000000000;
-	mdp_1080p_vectors[1].ib = 2000000000;
-
-	mdp_pdata.mdp_max_clk = 200000000;
-}
-#endif
 
 #if 0 // (defined(CONFIG_MARIMBA_CORE)) && (defined(CONFIG_MSM_BT_POWER) || defined(CONFIG_MSM_BT_POWER_MODULE))
 
