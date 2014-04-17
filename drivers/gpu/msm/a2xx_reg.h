@@ -1,4 +1,4 @@
-/* Copyright (c) 2002,2007-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2002,2007-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -140,24 +140,9 @@ union reg_rb_edram_info {
 	struct rb_edram_info_t f;
 };
 
-#define RBBM_READ_ERROR_UNUSED0_SIZE		2
-#define RBBM_READ_ERROR_READ_ADDRESS_SIZE	15
-#define RBBM_READ_ERROR_UNUSED1_SIZE		13
-#define RBBM_READ_ERROR_READ_REQUESTER_SIZE	1
-#define RBBM_READ_ERROR_READ_ERROR_SIZE		1
-
-struct rbbm_read_error_t {
-	unsigned int unused0:RBBM_READ_ERROR_UNUSED0_SIZE;
-	unsigned int read_address:RBBM_READ_ERROR_READ_ADDRESS_SIZE;
-	unsigned int unused1:RBBM_READ_ERROR_UNUSED1_SIZE;
-	unsigned int read_requester:RBBM_READ_ERROR_READ_REQUESTER_SIZE;
-	unsigned int read_error:RBBM_READ_ERROR_READ_ERROR_SIZE;
-};
-
-union rbbm_read_error_u {
-	unsigned int val:32;
-	struct rbbm_read_error_t f;
-};
+#define RBBM_READ_ERROR_ADDRESS_MASK	0x0001fffc
+#define RBBM_READ_ERROR_REQUESTER	(1<<30)
+#define RBBM_READ_ERROR_ERROR		(1<<31)
 
 #define CP_RB_CNTL_RB_BUFSZ_SIZE                           6
 #define CP_RB_CNTL_UNUSED0_SIZE                            2
@@ -278,6 +263,7 @@ union reg_cp_rb_cntl {
 #define REG_CP_ME_CNTL                   0x01F6
 #define REG_CP_ME_RAM_DATA               0x01FA
 #define REG_CP_ME_RAM_WADDR              0x01F8
+#define REG_CP_ME_RAM_RADDR              0x01F9
 #define REG_CP_ME_STATUS                 0x01F7
 #define REG_CP_PFP_UCODE_ADDR            0x00C0
 #define REG_CP_PFP_UCODE_DATA            0x00C1
@@ -304,6 +290,10 @@ union reg_cp_rb_cntl {
 #define REG_RBBM_PERFCOUNTER1_SELECT     0x0395
 #define REG_RBBM_PERFCOUNTER1_HI         0x0398
 #define REG_RBBM_PERFCOUNTER1_LO         0x0397
+
+#define REG_SQ_PERFCOUNTER3_SELECT       0x0DCB
+#define REG_SQ_PERFCOUNTER3_LO           0x0DD2
+#define REG_SQ_PERFCOUNTER3_HI           0x0DD3
 
 #define REG_MASTER_INT_SIGNAL            0x03B7
 
