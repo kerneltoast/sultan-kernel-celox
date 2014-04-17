@@ -1668,7 +1668,7 @@ ERR_RTN_CONTIOIN Check_Err_Condition(void)
 //110926 zero charger & palne noise apply
 static int median_err_setting(void)
 {
-	u16 obj_address;
+	u16 obj_address = 0;
 	u16 size_one;
 	u8 value, state;
 	bool ta_status_check;
