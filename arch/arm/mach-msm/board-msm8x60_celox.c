@@ -4022,15 +4022,6 @@ void disable_charging_before_reset(void)
 }
 #endif /* CONFIG_BATTERY_SEC */
 
-#ifdef CONFIG_FB_MSM_LCDC_DSUB
-/* VGA = 1440 x 900 x 4(bpp) x 2(pages)
-   prim = 1024 x 600 x 4(bpp) x 2(pages)
-   This is the difference. */
-#define MSM_FB_DSUB_PMEM_ADDER (0xA32000-0x4B0000)
-#else
-#define MSM_FB_DSUB_PMEM_ADDER (0)
-#endif
-
 /* Sensors DSPS platform data */
 #ifdef CONFIG_MSM_DSPS
 
@@ -4082,53 +4073,25 @@ static void __init msm8x60_init_dsps(void)
 }
 #endif /* CONFIG_MSM_DSPS */
 
-#if defined (CONFIG_FB_MSM_MIPI_S6E8AA0_HD720_PANEL)
-/* prim = 736 x 1280 x 4(bpp) x 2(pages) */
-#define MSM_FB_PRIM_BUF_SIZE (736 * 1280 * 4 * 3) /* 4 bpp x 3 pages */
-#else
-#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE \
-		(roundup((800 * 480 * 4), 4096) * 3) /* 4 bpp x 3 pages */
-#else
-#define MSM_FB_PRIM_BUF_SIZE \
-		(roundup((800 * 480 * 4), 4096) * 2) /* 4 bpp x 2 pages */
-#endif
-#endif
-
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-#define MSM_FB_EXT_BUF_SIZE  \
-		(roundup((1920 * 1080 * 2), 4096) * 2) /* 2 bpp x 2 page */
-#elif defined(CONFIG_FB_MSM_TVOUT)
-#define MSM_FB_EXT_BUF_SIZE  \
-		(roundup((720 * 576 * 2), 4096) * 2) /* 2 bpp x 2 pages */
-#else
-#define MSM_FB_EXT_BUF_SIZE	0
-#endif
-
-/* Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE + \
-				MSM_FB_DSUB_PMEM_ADDER, 4096)
-
-#define MSM_SMI_BASE          0x38000000
-#define MSM_SMI_SIZE          0x4000000
-
-#define KERNEL_SMI_BASE       (MSM_SMI_BASE)
-#define KERNEL_SMI_SIZE       0x600000
-
-#define MSM_ION_SF_SIZE		0x4000000 /* 64MB */
-#define MSM_ION_CAMERA_SIZE	0x1200000 /* 18MB */
-#define MSM_ION_MM_FW_SIZE	0x200000 /* (2MB) */
-#define MSM_ION_MM_SIZE		0x3600000 /* (54MB) Must be a multiple of 64K */
-#define MSM_ION_MFC_SIZE	SZ_8K
-#define MSM_ION_WB_SIZE		0x1400000 /* 20MB */
-#define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
-#define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
-
-#ifdef CONFIG_QSEECOM
-#define MSM_ION_HEAP_NUM	9
-#else
+/* Memory map */
 #define MSM_ION_HEAP_NUM	8
-#endif
+
+#define MSM_FB_SIZE 		0x500000
+#define MSM_SMI_SIZE            0x4000000
+#define MSM_ION_SF_SIZE		0x2A00000
+#define MSM_ION_CAMERA_SIZE	0x1200000
+#define MSM_ION_MM_FW_SIZE	0x200000
+#define MSM_ION_MM_SIZE		0x3500000
+#define MSM_ION_MFC_SIZE	0x100000
+#define MSM_ION_WB_SIZE		0x300000
+#define MSM_ION_AUDIO_SIZE	0x4CF000
+
+#define MSM_SMI_BASE            0x38000000
+#define MSM_ION_MM_FW_BASE	MSM_SMI_BASE
+#define MSM_ION_MM_BASE		0x38200000
+#define MSM_ION_MFC_BASE	0x3B700000
+#define MSM_ION_WB_BASE		0x3B800000
+#define MSM_FB_BASE		0x3BB00000
 
 static struct resource msm_fb_resources[] = {
 	{
@@ -4136,7 +4099,9 @@ static struct resource msm_fb_resources[] = {
 	}
 };
 
+#ifdef CONFIG_VIDEO_MHL_V2
 static void set_mdp_clocks_for_wuxga(void);
+#endif
 
 static int msm_fb_detect_panel(const char *name)
 {
@@ -5107,17 +5072,13 @@ static struct platform_device mipi_dsi_s6e8aa0_hd720_panel_device = {
 
 static void __init msm8x60_allocate_memory_regions(void)
 {
-	void *addr;
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-
-	addr = alloc_bootmem_align(size, 0x1000);
-	msm_fb_resources[0].start = __pa(addr);
+	msm_fb_resources[0].start = MSM_FB_BASE;
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
-		size, addr, __pa(addr));
-
+	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
+		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
 }
 
 void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
@@ -9587,6 +9548,7 @@ static struct ion_platform_data ion_pdata = {
 			.id	= ION_CP_MM_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CP,
 			.name	= ION_MM_HEAP_NAME,
+			.base	= MSM_ION_MM_BASE,
 			.size	= MSM_ION_MM_SIZE,
 			.memory_type = ION_SMI_TYPE,
 			.extra_data = (void *) &cp_mm_ion_pdata,
@@ -9595,6 +9557,7 @@ static struct ion_platform_data ion_pdata = {
 			.id	= ION_MM_FIRMWARE_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
 			.name	= ION_MM_FIRMWARE_HEAP_NAME,
+			.base   = MSM_ION_MM_FW_BASE,
 			.size	= MSM_ION_MM_FW_SIZE,
 			.memory_type = ION_SMI_TYPE,
 			.extra_data = (void *) &fw_co_ion_pdata,
@@ -9603,6 +9566,7 @@ static struct ion_platform_data ion_pdata = {
 			.id	= ION_CP_MFC_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CP,
 			.name	= ION_MFC_HEAP_NAME,
+			.base	= MSM_ION_MFC_BASE,
 			.size	= MSM_ION_MFC_SIZE,
 			.memory_type = ION_SMI_TYPE,
 			.extra_data = (void *) &cp_mfc_ion_pdata,
@@ -9627,20 +9591,11 @@ static struct ion_platform_data ion_pdata = {
 			.id	= ION_CP_WB_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CP,
 			.name	= ION_WB_HEAP_NAME,
+			.base	= MSM_ION_WB_BASE,
 			.size	= MSM_ION_WB_SIZE,
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &cp_wb_ion_pdata,
 		},
-#ifdef CONFIG_QSEECOM
-		{
-			.id	= ION_QSECOM_HEAP_ID,
-			.type	= ION_HEAP_TYPE_CARVEOUT,
-			.name	= ION_QSECOM_HEAP_NAME,
-			.size	= MSM_ION_QSECOM_SIZE,
-			.memory_type = ION_EBI_TYPE,
-			.extra_data = (void *) &co_ion_pdata,
-		},
-#endif
 		{
 			.id	= ION_AUDIO_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
@@ -9677,49 +9632,9 @@ static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 
 static void reserve_ion_memory(void)
 {
-#if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
-	unsigned int i;
-
-	if (hdmi_is_primary) {
-		msm_ion_sf_size = MSM_HDMI_PRIM_ION_SF_SIZE;
-		for (i = 0; i < ion_pdata.nr; i++) {
-			if (ion_pdata.heaps[i].id == ION_SF_HEAP_ID) {
-				ion_pdata.heaps[i].size = msm_ion_sf_size;
-				pr_debug("msm_ion_sf_size 0x%x\n",
-					msm_ion_sf_size);
-				break;
-			}
-		}
-	}
-
-	/* Verify size of heap is a multiple of 64K */
-	for (i = 0; i < ion_pdata.nr; i++) {
-		struct ion_platform_heap *heap = &(ion_pdata.heaps[i]);
-
-		if (heap->extra_data && heap->type == ION_HEAP_TYPE_CP) {
-			int map_all = ((struct ion_cp_heap_pdata *)
-				heap->extra_data)->iommu_map_all;
-
-			if (map_all && (heap->size & (SZ_64K-1))) {
-				heap->size = ALIGN(heap->size, SZ_64K);
-				pr_err("Heap %s size is not a multiple of 64K. Adjusting size to %x\n",
-					heap->name, heap->size);
-
-			}
-		}
-	}
-
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += msm_ion_sf_size;
-	msm8x60_reserve_table[MEMTYPE_SMI].size += MSM_ION_MM_FW_SIZE;
-	msm8x60_reserve_table[MEMTYPE_SMI].size += MSM_ION_MM_SIZE;
-	msm8x60_reserve_table[MEMTYPE_SMI].size += MSM_ION_MFC_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_CAMERA_SIZE;
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_WB_SIZE;
-#ifdef CONFIG_QSEECOM
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_QSECOM_SIZE;
-#endif
+	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_SF_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
-#endif
 }
 
 static void __init msm8x60_calculate_reserve_sizes(void)
@@ -15423,7 +15338,7 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 };
 
 #endif
-#ifdef CONFIG_MSM_BUS_SCALING
+#ifdef CONFIG_FB_MSM_DTV
 static struct msm_bus_vectors dtv_bus_init_vectors[] = {
 	/* For now, 0th array entry is reserved.
 	 * Please leave 0 as is and don't use it
@@ -15763,6 +15678,7 @@ static void __init msm_fb_add_devices(void)
 #endif
 }
 
+#ifdef CONFIG_VIDEO_MHL_V2
 /**
  * Set MDP clocks to high frequency to avoid underflow when
  * using high resolution 1200x1920 WUXGA/HDMI as primary panels
@@ -15796,6 +15712,7 @@ static void set_mdp_clocks_for_wuxga(void)
 
 	mdp_pdata.mdp_max_clk = 200000000;
 }
+#endif
 
 #if 0 // (defined(CONFIG_MARIMBA_CORE)) && (defined(CONFIG_MSM_BT_POWER) || defined(CONFIG_MSM_BT_POWER_MODULE))
 
