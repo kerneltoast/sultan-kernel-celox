@@ -271,6 +271,10 @@
 static struct platform_device ion_dev;
 #endif
 
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
+int set_two_phase_freq(int cpufreq);
+#endif
+
 #if defined (CONFIG_OPTICAL_GP2A) || defined(CONFIG_OPTICAL_TAOS)
 #define SENSOR_ALS_SCL   		139
 #define SENSOR_ALS_SDA   		138
