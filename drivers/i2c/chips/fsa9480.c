@@ -215,7 +215,9 @@ static int initial_check=0;
 #define USE_VEHICLE_DOCK	2
 
 extern bool mhl_vbus; //3355
+#ifdef CONFIG_VIDEO_MHL_V2
 static bool mhl_onoff = false;
+#endif
 #define GPIO_MHL_SEL PM8058_GPIO_PM_TO_SYS(PM8058_GPIO(16))
 extern bool is_hdmi_ready(void);
 
