@@ -4076,8 +4076,13 @@ static void __init msm8x60_init_dsps(void)
 /* Memory map */
 #define MSM_ION_HEAP_NUM	8
 
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 #define MSM_FB_SIZE roundup((roundup((800 * 480 * 4), 4096) * 3) + \
 				(roundup((1920 * 1080 * 2), 4096) * 2), 4096)
+#else
+#define MSM_FB_SIZE roundup((roundup((800 * 480 * 4), 4096) * 3), 4096)
+#endif
+
 #define MSM_SMI_SIZE            0x4000000
 #define MSM_ION_SF_SIZE		0x2A00000
 #define MSM_ION_CAMERA_SIZE	0x1200000
