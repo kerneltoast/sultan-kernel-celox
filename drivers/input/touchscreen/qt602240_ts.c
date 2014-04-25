@@ -207,15 +207,6 @@ int touch_is_pressed;
 EXPORT_SYMBOL(touch_is_pressed);
 int touch_is_pressed_arr[MAX_USING_FINGER_NUM];
 static int mxt224_enabled;
-#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_USA_MODEL_SGH_I727) ||defined (CONFIG_USA_MODEL_SGH_T989)
-#if defined (SEC_TSP_POSITION_DEBUG_XTOPHER)
-static bool g_debug_switch = true;
-#else
-static bool g_debug_switch = false;
-#endif
-#else
-static bool g_debug_switch = false;
-#endif
 static u8 mxt_version_disp;
 static u8 tsp_version_disp;
 static int threshold = 55;
@@ -1477,18 +1468,6 @@ static void report_input_data(struct mxt224_data *data)
 
 		//input_mt_sync(data->input_dev);
 #endif
-
-//		if (touch_is_pressed_arr[i] < 2) {
-		if (g_debug_switch)
-				printk(KERN_DEBUG "[TSP] ID-%d, %4d,%4d  UD:%d \n", i, data->fingers[i].x, data->fingers[i].y, touch_is_pressed_arr[i]);
-			else 
-			      {
-			        #ifndef CONFIG_USA_MODEL_SGH_T989
-				printk(KERN_DEBUG "[TSP] ID-%d,UD:%d \n", i, 
-					touch_is_pressed_arr[i]);  
-				#endif
-			      }		
-//		}
 
 		tsp_pattern_tracking(i, data->fingers[i].x, data->fingers[i].y);
 
