@@ -2171,12 +2171,6 @@ config BT_BCM4330
  	help
 	  Adds BCM4330 RFKILL driver for Broadcom BCM4330 chipset
 
-config BT_MGMT
-        bool "Bluetooth Mgmt"
-        default n
- 	help
-	  This is for bluetooth mgmt
-
 config MSM_FAKE_BATTERY
 		depends on POWER_SUPPLY
 		default n
