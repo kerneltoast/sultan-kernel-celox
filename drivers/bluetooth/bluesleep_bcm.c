@@ -220,8 +220,6 @@ static void bluesleep_ext_wake_set_wq(struct work_struct *work)
 
 static void bluesleep_sleep_wakeup_wq(struct work_struct *work)
 {
-   int ret;
-
    if (test_bit(BT_ASLEEP, &flags)) {
        BT_DBG("(wq)waking up...");
 
@@ -480,7 +478,6 @@ static irqreturn_t bluesleep_hostwake_isr(int irq, void *dev_id)
 static void bluesleep_start_wq(struct work_struct *work)
 {
 	int retval;
-	int ret;
 
 	if (test_bit(BT_PROTO, &flags)) {
 		return;
