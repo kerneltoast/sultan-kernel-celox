@@ -41,6 +41,7 @@
 #include <linux/i2c/isa1200.h>
 #include <linux/dma-mapping.h>
 #include <linux/i2c/bq27520.h>
+#include <linux/memblock.h>
 
 #ifdef CONFIG_TOUCHSCREEN_MELFAS
 #define TOUCHSCREEN_IRQ 		125  
@@ -4086,7 +4087,10 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_SMI_BASE            0x38000000
 #define MSM_SMI_SIZE            0x4000000
 
-#define MSM_ION_SF_SIZE		0x2A00000
+#define MSM_RAM_CONSOLE_BASE    0x7D100000
+#define MSM_RAM_CONSOLE_SIZE    SZ_1M
+
+#define MSM_ION_SF_SIZE		0x2900000
 #define MSM_ION_CAMERA_SIZE	0xA00000
 #define MSM_ION_MM_FW_SIZE	0x200000
 #define MSM_ION_MM_SIZE		0x3300000
@@ -9252,16 +9256,21 @@ static struct i2c_board_info melfas_board_info[] = {
 };
 #endif
 
+static struct resource ram_console_resources[] = {
+	{
+		.start	= MSM_RAM_CONSOLE_BASE,
+		.end	= MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+};
 
+static struct platform_device ram_console_device = {
+	.name		= "ram_console",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(ram_console_resources),
+	.resource	= ram_console_resources,
+};
 
-
-
-
-
-
-
-
-//*********
 static struct platform_device *charm_devices[] __initdata = {
 	&msm_charm_modem,
 #ifdef CONFIG_MSM_SDIO_AL
@@ -9293,6 +9302,7 @@ static struct platform_device *asoc_devices[] __initdata = {
 };
 
 static struct platform_device *surf_devices[] __initdata = {
+	&ram_console_device,
 	&msm_device_smd,
 	&msm_device_uart_dm12,
 	&msm_pil_q6v3,
@@ -9606,7 +9616,6 @@ static struct platform_device ion_dev = {
 };
 #endif
 
-
 static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 	[MEMTYPE_SMI] = {
 		.start	=	MSM_SMI_BASE,
@@ -9667,9 +9676,14 @@ early_param("ext_display", ext_display_setup);
 
 static void __init msm8x60_reserve(void)
 {
+	int ret;
+
 	msm8x60_set_display_params(prim_panel_name, ext_panel_name);
 	reserve_info = &msm8x60_reserve_info;
 	msm_reserve();
+
+	ret = memblock_remove(MSM_RAM_CONSOLE_BASE, MSM_RAM_CONSOLE_SIZE);
+	BUG_ON(ret);
 }
 
 #define EXT_CHG_VALID_MPP 10
