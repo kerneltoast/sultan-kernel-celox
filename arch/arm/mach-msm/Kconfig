@@ -262,6 +262,7 @@ config ARCH_MSM9615
 	select MSM_RPM_REGULATOR
 	select MULTI_IRQ_HANDLER
 	select MSM_PM8X60 if PM
+	select ARM_HAS_SG_CHAIN
 
 endmenu
 
