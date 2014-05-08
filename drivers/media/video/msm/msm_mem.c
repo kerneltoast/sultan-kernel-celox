@@ -132,11 +132,11 @@ static int msm_pmem_table_add(struct hlist_head *ptype,
 	if (!region)
 		goto out;
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	region->handle = ion_import_fd(client, info->fd);
+	region->handle = ion_import_dma_buf(client, info->fd);
 	if (IS_ERR_OR_NULL(region->handle))
 		goto out1;
 	if (ion_map_iommu(client, region->handle, CAMERA_DOMAIN, GEN_POOL,
-				  SZ_4K, 0, &paddr, &len, UNCACHED, 0) < 0)
+				  SZ_4K, 0, &paddr, &len, 0, 0) < 0)
 		goto out2;
 #elif CONFIG_ANDROID_PMEM
 	rc = get_pmem_file(info->fd, &paddr, &kvstart, &len, &file);

@@ -32,6 +32,7 @@
 #include <linux/file.h>
 #include <linux/android_pmem.h>
 #include <linux/major.h>
+#include <linux/msm_ion.h>
 #include <asm/system.h>
 #include <asm/mach-types.h>
 #include <linux/semaphore.h>
@@ -326,9 +327,9 @@ int mdp4_overlay_iommu_map_buf(int mem_id,
 	if (!display_iclient)
 		return -EINVAL;
 
-	*srcp_ihdl = ion_import_fd(display_iclient, mem_id);
+	*srcp_ihdl = ion_import_dma_buf(display_iclient, mem_id);
 	if (IS_ERR_OR_NULL(*srcp_ihdl)) {
-		pr_err("ion_import_fd() failed\n");
+		pr_err("ion_import_dma_buf() failed\n");
 		return PTR_ERR(*srcp_ihdl);
 	}
 	pr_debug("%s(): ion_hdl %p, ion_buf %d\n", __func__, *srcp_ihdl, mem_id);

@@ -269,7 +269,7 @@ u32 ddl_decoder_dpb_init(struct ddl_client_context *ddl)
 			if (luma_size <= vcd_frm->alloc_len) {
 				kernel_vaddr = (u8 *)ion_map_kernel(
 						ddl_context->video_ion_client,
-						vcd_frm->buff_ion_handle, res_trk_get_ion_flags());
+						vcd_frm->buff_ion_handle);
 				if (IS_ERR_OR_NULL(kernel_vaddr)) {
 					DDL_MSG_ERROR("%s(): ION_MAP for "\
 					"DPB[%u] failed\n", __func__, i);
