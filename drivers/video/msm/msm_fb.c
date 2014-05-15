@@ -31,6 +31,7 @@
 #include <linux/dma-mapping.h>
 #include <mach/board.h>
 #include <linux/uaccess.h>
+#include <mach/iommu_domains.h>
 
 #include <linux/workqueue.h>
 #include <linux/string.h>
@@ -1235,9 +1236,6 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	int *id;
 	int fbram_offset;
 	int remainder, remainder_mode2;
-	static int subsys_id[2] = {MSM_SUBSYSTEM_DISPLAY,
-		MSM_SUBSYSTEM_ROTATOR};
-	unsigned int flags = MSM_SUBSYSTEM_MAP_IOVA;
 
 	/*
 	 * fb info initialization
@@ -1391,7 +1389,6 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	 * calculate smem_len based on max size of two supplied modes.
 	 * Only fb0 has mem. fb1 and fb2 don't have mem.
 	 */
-
 	if (!bf_supported || mfd->index == 0)
 		fix->smem_len = MAX((msm_fb_line_length(mfd->index,
 							panel_info->xres,
@@ -1523,15 +1520,29 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	fbi->fix.smem_start = (unsigned long)fbram_phys;
 
 	if (fbi->fix.smem_start) {
-		mfd->map_buffer = msm_subsystem_map_buffer(
-			fbi->fix.smem_start, fbi->fix.smem_len,
-			flags, subsys_id, 2);
-		if (mfd->map_buffer) {
-			pr_debug("%s(): buf 0x%lx, mfd->map_buffer->iova[0] 0x%lx\n"
-				"mfd->map_buffer->iova[1] 0x%lx", __func__,
-				fbi->fix.smem_start, mfd->map_buffer->iova[0],
-				mfd->map_buffer->iova[1]);
-		}
+		msm_iommu_map_contig_buffer(fbi->fix.smem_start,
+					    DISPLAY_WRITE_DOMAIN,
+					    GEN_POOL,
+					    fbi->fix.smem_len,
+					    SZ_4K,
+					    0,
+					    &(mfd->display_iova));
+
+		msm_iommu_map_contig_buffer(fbi->fix.smem_start,
+					    DISPLAY_READ_DOMAIN,
+					    GEN_POOL,
+					    fbi->fix.smem_len,
+					    SZ_4K,
+					    0,
+					    &(mfd->display_iova));
+
+		msm_iommu_map_contig_buffer(fbi->fix.smem_start,
+					    ROTATOR_SRC_DOMAIN,
+					    GEN_POOL,
+					    fbi->fix.smem_len,
+					    SZ_4K,
+					    0,
+					    &(mfd->rotator_iova));
 	}
 
 	if ((!bf_supported || mfd->index == 0) && fbi->screen_base)
@@ -1542,10 +1553,22 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 
 	/* cursor memory allocation */
 	if (mfd->cursor_update) {
+		unsigned long cursor_buf_iommu = 0;
 		mfd->cursor_buf = dma_alloc_coherent(NULL,
 					MDP_CURSOR_SIZE,
 					(dma_addr_t *) &mfd->cursor_buf_phys,
 					GFP_KERNEL);
+
+		msm_iommu_map_contig_buffer((unsigned long)mfd->cursor_buf_phys,
+					    DISPLAY_READ_DOMAIN,
+					    GEN_POOL,
+					    MDP_CURSOR_SIZE,
+					    SZ_4K,
+					    0,
+					    &cursor_buf_iommu);
+		if (cursor_buf_iommu)
+			mfd->cursor_buf_phys = (void *)cursor_buf_iommu;
+
 		if (!mfd->cursor_buf)
 			mfd->cursor_update = 0;
 	}
@@ -4324,10 +4347,19 @@ int get_fb_phys_info(unsigned long *start, unsigned long *len, int fb_num,
 	}
 
 	mfd = (struct msm_fb_data_type *)info->par;
-	if (mfd->map_buffer)
-		*start = mfd->map_buffer->iova[subsys_id];
-	else
-		*start = info->fix.smem_start;
+
+	if (subsys_id == DISPLAY_SUBSYSTEM_ID) {
+		if (mfd->display_iova)
+			*start = mfd->display_iova;
+		else
+			*start = info->fix.smem_start;
+	} else {
+		if (mfd->rotator_iova)
+			*start = mfd->rotator_iova;
+		else
+			*start = info->fix.smem_start;
+	}
+
 	*len = info->fix.smem_len;
 
 	return 0;

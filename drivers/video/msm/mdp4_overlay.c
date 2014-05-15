@@ -24,6 +24,7 @@
 #include <mach/hardware.h>
 #include <mach/iommu_domains.h>
 #include <mach/iommu.h>
+#include <linux/iommu.h>
 #include <linux/io.h>
 #include <linux/debugfs.h>
 #include <linux/fb.h>
@@ -139,9 +140,6 @@ void  mdp4_overlay_free_base_pipe(struct msm_fb_data_type *mfd)
 }
 
 static struct ion_client *display_iclient;
-
-static int mdp4_overlay_cache_reg(struct msm_fb_data_type *mfd,
-				u32 offset, u32 val);
 
 /*
  * mdp4_overlay_iommu_unmap_freelist()
@@ -264,6 +262,8 @@ int mdp4_overlay_iommu_map_buf(int mem_id,
 	struct ion_handle **srcp_ihdl)
 {
 	struct mdp4_iommu_pipe_info *iom;
+	unsigned long size = 0, map_size = 0;
+	int ret;
 
 	if (!display_iclient)
 		return -EINVAL;
@@ -276,14 +276,34 @@ int mdp4_overlay_iommu_map_buf(int mem_id,
 	pr_debug("%s(): ion_hdl %p, ion_buf %d\n", __func__, *srcp_ihdl, mem_id);
 	pr_debug("mixer %u, pipe %u, plane %u\n", pipe->mixer_num,
 		pipe->pipe_ndx, plane);
-	if (ion_map_iommu(display_iclient, *srcp_ihdl,
-		DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
-		len, 0, 0)) {
-		ion_free(display_iclient, *srcp_ihdl);
-		pr_err("ion_map_iommu() failed\n");
-		return -EINVAL;
-	}
 
+	if(mdp4_overlay_format2type(pipe->src_format) == OVERLAY_TYPE_RGB) {
+		ret = ion_handle_get_size(display_iclient, *srcp_ihdl, &size);
+		if (ret)
+			pr_err("ion_handle_get_size failed with ret %d\n", ret);
+		map_size = mdp_iommu_max_map_size;
+		if(map_size < size)
+			map_size = size;
+
+		if (ion_map_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, map_size, start,
+				len, 0, 0)) {
+			ion_free(display_iclient, *srcp_ihdl);
+			pr_err("%s(): ion_map_iommu() failed\n",
+					__func__);
+			return -EINVAL;
+		}
+	} else {
+
+		if (ion_map_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
+				len, 0, 0)) {
+			ion_free(display_iclient, *srcp_ihdl);
+			pr_err("%s(): ion_map_iommu() failed\n",
+					__func__);
+			return -EINVAL;
+		}
+	}
 	mutex_lock(&iommu_mutex);
 	iom = &pipe->iommu;
 	if (iom->prev_ihdl[plane]) {
@@ -913,7 +933,7 @@ void mdp4_overlay_vg_setup(struct mdp4_overlay_pipe *pipe)
 	uint32 frame_size, src_size, src_xy, dst_size, dst_xy;
 	uint32 format, pattern, luma_offset, chroma_offset;
 	uint32 mask;
-	int pnum, ptype, i, ret;
+	int pnum, ptype, i;
 	uint32_t block;
 
 	pnum = pipe->pipe_num - OVERLAY_PIPE_VG1; /* start from 0 */
@@ -996,35 +1016,8 @@ void mdp4_overlay_vg_setup(struct mdp4_overlay_pipe *pipe)
 	outpdw(vg_base + 0x0008, dst_size);	/* MDP_RGB_DST_SIZE */
 	outpdw(vg_base + 0x000c, dst_xy);	/* MDP_RGB_DST_XY */
 
-	if (pipe->frame_format != MDP4_FRAME_FORMAT_LINEAR) {
-		struct mdp4_overlay_pipe *real_pipe;
-		u32 psize, csize;
-
-		ret = mdp4_overlay_cache_reg(pipe->mfd,
-				(u32)(vg_base + 0x0048), frame_size);
-		if (ret) {
-			/*
-			 * video tile frame size register is NOT double
-			 * buffered. When this register updated, it kicks
-			 * in immediatly. During transition from smaller
-			 * resolution to higher resolution it may have
-			 * possibility that mdp still fetch from smaller
-			 * resolution buffer with new higher resolution
-			 * frame size. This will cause iommu page fault.
-			 */
-			real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
-			psize = real_pipe->prev_src_height *
-					real_pipe->prev_src_width;
-			csize = pipe->src_height * pipe->src_width;
-			if (psize && (csize > psize)) {
-				frame_size = (real_pipe->prev_src_height << 16 |
-						real_pipe->prev_src_width);
-			}
-			outpdw(vg_base + 0x0048, frame_size);
-			real_pipe->prev_src_height = pipe->src_height;
-			real_pipe->prev_src_width = pipe->src_width;
-		}
-	}
+	if (pipe->frame_format != MDP4_FRAME_FORMAT_LINEAR)
+		outpdw(vg_base + 0x0048, frame_size);	/* TILE frame size */
 
 	/*
 	 * Adjust src X offset to avoid MDP from overfetching pixels
@@ -4075,46 +4068,79 @@ void mdp4_overlay_commit_finish(struct fb_info *info)
 struct msm_iommu_ctx {
 	char *name;
 	int  domain;
-} msm_iommu_ctx_names[] = {
-	/* Display */
+};
+
+static struct msm_iommu_ctx msm_iommu_ctx_names[] = {
+	/* Display read*/
 	{
 		.name = "mdp_port0_cb0",
 		.domain = DISPLAY_READ_DOMAIN,
 	},
-	/* Display */
+	/* Display read*/
 	{
 		.name = "mdp_port0_cb1",
 		.domain = DISPLAY_READ_DOMAIN,
 	},
-	/* Display */
+	/* Display write */
 	{
 		.name = "mdp_port1_cb0",
 		.domain = DISPLAY_READ_DOMAIN,
 	},
-	/* Display */
+	/* Display write */
 	{
 		.name = "mdp_port1_cb1",
 		.domain = DISPLAY_READ_DOMAIN,
 	},
 };
 
-static int iommu_enabled;
+static struct msm_iommu_ctx msm_iommu_split_ctx_names[] = {
+	/* Display read*/
+	{
+		.name = "mdp_port0_cb0",
+		.domain = DISPLAY_READ_DOMAIN,
+	},
+	/* Display read*/
+	{
+		.name = "mdp_port0_cb1",
+		.domain = DISPLAY_WRITE_DOMAIN,
+	},
+	/* Display write */
+	{
+		.name = "mdp_port1_cb0",
+		.domain = DISPLAY_READ_DOMAIN,
+	},
+	/* Display write */
+	{
+		.name = "mdp_port1_cb1",
+		.domain = DISPLAY_WRITE_DOMAIN,
+	},
+};
 
 void mdp4_iommu_attach(void)
 {
+	static int done;
+	struct msm_iommu_ctx *ctx_names;
 	struct iommu_domain *domain;
-	int i;
+	int i, arr_size;
 
-	if (!iommu_enabled) {
-		for (i = 0; i < ARRAY_SIZE(msm_iommu_ctx_names); i++) {
+	if (!done) {
+		if (mdp_iommu_split_domain) {
+			ctx_names = msm_iommu_split_ctx_names;
+			arr_size = ARRAY_SIZE(msm_iommu_split_ctx_names);
+		} else {
+			ctx_names = msm_iommu_ctx_names;
+			arr_size = ARRAY_SIZE(msm_iommu_ctx_names);
+		}
+
+		for (i = 0; i < arr_size; i++) {
 			int domain_idx;
 			struct device *ctx = msm_iommu_get_ctx(
-				msm_iommu_ctx_names[i].name);
+				ctx_names[i].name);
 
 			if (!ctx)
 				continue;
 
-			domain_idx = msm_iommu_ctx_names[i].domain;
+			domain_idx = ctx_names[i].domain;
 
 			domain = msm_get_iommu_domain(domain_idx);
 			if (!domain)
@@ -4124,42 +4150,11 @@ void mdp4_iommu_attach(void)
 				WARN(1, "%s: could not attach domain %d to context %s."
 					" iommu programming will not occur.\n",
 					__func__, domain_idx,
-					msm_iommu_ctx_names[i].name);
+					ctx_names[i].name);
 				continue;
 			}
 		}
-		pr_debug("Attached MDP IOMMU device\n");
-		iommu_enabled = 1;
-	}
-}
-
-void mdp4_iommu_detach(void)
-{
-	struct iommu_domain *domain;
-	int i;
-
-	if (!mdp_check_suspended() || mdp4_extn_disp)
-		return;
-
-	if (iommu_enabled) {
-		for (i = 0; i < ARRAY_SIZE(msm_iommu_ctx_names); i++) {
-			int domain_idx;
-			struct device *ctx = msm_iommu_get_ctx(
-				msm_iommu_ctx_names[i].name);
-
-			if (!ctx)
-				continue;
-
-			domain_idx = msm_iommu_ctx_names[i].domain;
-
-			domain = msm_get_iommu_domain(domain_idx);
-			if (!domain)
-				continue;
-
-			iommu_detach_device(domain,	ctx);
-		}
-		pr_debug("Detached MDP IOMMU device\n");
-		iommu_enabled = 0;
+		done = 1;
 	}
 }
 
@@ -4286,26 +4281,4 @@ int mdp4_overlay_reset()
 	memset(&perf_request, 0, sizeof(perf_request));
 	memset(&perf_current, 0, sizeof(perf_current));
 	return 0;
-}
-
-static int mdp4_overlay_cache_reg(struct msm_fb_data_type *mfd,
-					u32 offset, u32 val)
-{
-	if ((!mfd) || (!mfd->cache_reg_en) ||
-		(mfd->cached_reg_cnt >= MDP_MAX_CACHED_REG)) {
-		pr_debug("%s: exceed max cached reg number", __func__);
-		return -EINVAL;
-	}
-	mfd->cached_reg[mfd->cached_reg_cnt].reg = offset;
-	mfd->cached_reg[mfd->cached_reg_cnt].val = val;
-	mfd->cached_reg_cnt++;
-	return 0;
-}
-
-void mdp4_overlay_update_cached_reg(struct msm_fb_data_type *mfd)
-{
-	int i;
-	for (i = 0; i < mfd->cached_reg_cnt; i++)
-		outpdw((char *)mfd->cached_reg[i].reg,  mfd->cached_reg[i].val);
-	mfd->cached_reg_cnt = 0;
 }

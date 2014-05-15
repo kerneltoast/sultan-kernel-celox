@@ -31,6 +31,7 @@ extern u32 mdp_max_clk;
 extern u64 mdp_max_bw;
 extern u32 mdp_bw_ab_factor;
 extern u32 mdp_bw_ib_factor;
+extern u32 mdp_iommu_max_map_size;
 #define MDP4_BW_AB_DEFAULT_FACTOR (115)	/* 1.15 */
 #define MDP4_BW_IB_DEFAULT_FACTOR (150)	/* 1.5 */
 #define MDP_BUS_SCALE_AB_STEP (0x4000000)
@@ -1004,7 +1005,6 @@ void mdp4_overlay_iommu_unmap_freelist(int mixer);
 void mdp4_overlay_iommu_vsync_cnt(void);
 void mdp4_iommu_unmap(struct mdp4_overlay_pipe *pipe);
 void mdp4_iommu_attach(void);
-void mdp4_iommu_detach(void);
 int mdp4_v4l2_overlay_set(struct fb_info *info, struct mdp_overlay *req,
 		struct mdp4_overlay_pipe **ppipe);
 void mdp4_v4l2_overlay_clear(struct mdp4_overlay_pipe *pipe);

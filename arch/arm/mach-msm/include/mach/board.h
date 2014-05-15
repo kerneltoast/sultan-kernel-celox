@@ -351,6 +351,7 @@ struct msm_panel_common_pdata {
 	u32 mem_hid;
 	char cont_splash_enabled;
 	int (*mdp_gamma)(void);
+	char mdp_iommu_split_domain;
 };
 
 

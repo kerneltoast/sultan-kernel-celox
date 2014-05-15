@@ -42,6 +42,7 @@ extern uint32 mdp_hw_revision;
 extern ulong mdp4_display_intf;
 extern spinlock_t mdp_spin_lock;
 extern int mdp_rev;
+extern int mdp_iommu_split_domain;
 extern struct mdp_csc_cfg mdp_csc_convert[4];
 extern struct mdp_csc_cfg_data csc_cfg_matrix[];
 extern struct workqueue_struct *mdp_hist_wq;
@@ -895,6 +896,8 @@ void __mdp_histogram_kickoff(struct mdp_hist_mgmt *mgmt);
 void __mdp_histogram_reset(struct mdp_hist_mgmt *mgmt);
 unsigned int mdp_check_suspended(void);
 void mdp_footswitch_ctrl(boolean on);
+int mdp_enable_iommu_clocks(void);
+int mdp_disable_iommu_clocks(void);
 
 #ifdef CONFIG_FB_MSM_MDP303
 static inline void mdp4_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
@@ -913,10 +916,6 @@ static inline void mdp4_overlay_dsi_state_set(int state)
 static inline int mdp4_overlay_dsi_state_get(void)
 {
 	return 0;
-}
-static inline void mdp4_iommu_detach(void)
-{
-	/*empty */
 }
 #endif
 
