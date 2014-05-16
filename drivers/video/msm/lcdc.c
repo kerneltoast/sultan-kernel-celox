@@ -78,6 +78,8 @@ static int lcdc_off(struct platform_device *pdev)
 	clk_disable_unprepare(pixel_mdp_clk);
 	clk_disable_unprepare(pixel_lcdc_clk);
 
+	lcdc_LD9040_panel_power(0);
+
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(0);
 
@@ -145,6 +147,8 @@ static int lcdc_on(struct platform_device *pdev)
 
 	clk_prepare_enable(pixel_mdp_clk);
 	clk_prepare_enable(pixel_lcdc_clk);
+
+	lcdc_LD9040_panel_power(1);
 
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(1);
