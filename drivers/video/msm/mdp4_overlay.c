@@ -172,8 +172,9 @@ void mdp4_overlay_iommu_unmap_freelist(int mixer)
 			continue;
 		pr_debug("%s: mixer=%d i=%d ihdl=0x%p\n", __func__,
 					mixer, i, ihdl);
-		ion_unmap_iommu(display_iclient, ihdl, DISPLAY_READ_DOMAIN,
-							GEN_POOL);
+		if ((DISPLAY_READ_DOMAIN != 2) && (GEN_POOL != 2))
+			ion_unmap_iommu(display_iclient, ihdl, DISPLAY_READ_DOMAIN,
+								GEN_POOL);
 		mdp4_stat.iommu_unmap++;
 		pr_debug("%s: map=%d unmap=%d drop=%d\n", __func__,
 			(int)mdp4_stat.iommu_map, (int)mdp4_stat.iommu_unmap,
