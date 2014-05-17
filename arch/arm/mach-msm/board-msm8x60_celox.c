@@ -137,7 +137,6 @@
 #include <mach/restart.h>
 #include <mach/board-msm8660.h>
 #include <mach/devices-lte.h>
-#include <mach/iommu_domains.h>
 
 #include "devices.h"
 #include "devices-msm8x60.h"
@@ -9508,20 +9507,15 @@ static struct platform_device *surf_devices[] __initdata = {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 static struct ion_cp_heap_pdata cp_mm_ion_pdata = {
 	.permission_type = IPT_TYPE_MM_CARVEOUT,
-	.align = SZ_64K,
+	.align = PAGE_SIZE,
 	.request_region = request_smi_region,
 	.release_region = release_smi_region,
 	.setup_region = setup_smi_region,
-	.iommu_map_all = 1,
-	.iommu_2x_map_domain = VIDEO_DOMAIN,
 };
 
 static struct ion_cp_heap_pdata cp_mfc_ion_pdata = {
 	.permission_type = IPT_TYPE_MFC_SHAREDMEM,
 	.align = PAGE_SIZE,
-	.request_region = request_smi_region,
-	.release_region = release_smi_region,
-	.setup_region = setup_smi_region,
 };
 
 static struct ion_co_heap_pdata fw_co_ion_pdata = {
