@@ -12,7 +12,7 @@ obj-$(CONFIG_DEBUG_FS) += mdp_debugfs.o
 
 ifeq ($(CONFIG_FB_MSM_MDP40),y)
 obj-y += mdp4_util.o
-obj-y += mdp4_video_enhance.o
+#obj-y += mdp4_video_enhance.o
 else
 obj-y += mdp_hw_init.o
 obj-y += mdp_ppp.o
@@ -147,10 +147,6 @@ obj-$(CONFIG_FB_MSM_MIPI_S6E8AA0_WXGA_Q1_PT) += mipi_s6e8aa0_wxga_q1_pt.o
 endif
 
 obj-$(CONFIG_FB_MSM_LCDC_PANEL) += lcdc_panel.o
-ifndef CONFIG_TARGET_SERIES_DALI # kmj_imsi
-obj-$(CONFIG_FB_MSM_LCDC_LD9040_WVGA) += lcdc_ld9040.o
-endif
-obj-$(CONFIG_FB_MSM_LCDC_LD9040_WVGA) += smart_dimming_ea8868.o
 obj-$(CONFIG_FB_MSM_LCDC_S6E63M0_WVGA) += lcdc_S6E63M0.o
 obj-$(CONFIG_USA_MODEL_SGH_T769) += smart_mtp_s6e63m0.o
 obj-$(CONFIG_USA_MODEL_SGH_I577) += smart_mtp_s6e63m0.o

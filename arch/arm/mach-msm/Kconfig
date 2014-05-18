@@ -2421,3 +2421,5 @@ config COMPACTION_RETRY
 	  we give one more try to allocate pages with forced compaction.
 	  This might avoid oom-killer invocation.
 	  with many free pages being already there.
+
+source "arch/arm/mach-msm/display/Kconfig"

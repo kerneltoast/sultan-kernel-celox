@@ -250,11 +250,6 @@ config FB_MSM_LCDC_ST15_PANEL
     ---help---
       Support for ST1.5 WXGA (1366x768) panel
 
-config FB_MSM_LCDC_LD9040_WVGA
-	bool
-	select FB_MSM_LCDC_PANEL
-	default n
-
 config FB_MSM_LCDC_PRISM_WVGA
 	bool
 	select FB_MSM_LCDC_PANEL
@@ -452,13 +447,6 @@ config FB_MSM_LCDC_CHIMEI_WXGA_PANEL
 	select FB_MSM_LCDC_CHIMEI_WXGA
 	---help---
 	  Support for LCDC Chimei WXGA (1366x768) panel
-
-config FB_MSM_LCDC_LD9040_WVGA_PANEL
-	depends on FB_MSM_LCDC_HW
-	bool "LCDC LD9040 WVGA Panel"
-	select FB_MSM_LCDC_LD9040_WVGA
-	---help---
-	  Support for LCDC LD9040 WVGA (480x800) panel
 
 config FB_MSM_LCDC_S6E63M0_WVGA_PANEL
     depends on FB_MSM_LCDC_HW

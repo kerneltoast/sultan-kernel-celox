@@ -1,0 +1,11 @@
+config FB_MSM_LCDC_LD9040_WVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_LD9040_WVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC LD9040 WVGA Panel"
+	select FB_MSM_LCDC_LD9040_WVGA
+	---help---
+	  Support for LCDC LD9040 WVGA (480x800) panel
