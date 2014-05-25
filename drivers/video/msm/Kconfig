@@ -425,7 +425,7 @@ config FB_MSM_WRITEBACK_MSM_PANEL
 	  Support for MDP4 OVERLAY write back mode
 choice
 	prompt "LCD Panel"
-	default FB_MSM_MDDI_AUTO_DETECT
+	default FB_MSM_LCDC_LD9040_WVGA_PANEL
 
 config FB_MSM_LCDC_PRISM_WVGA_PANEL
 	depends on FB_MSM_LCDC_HW
