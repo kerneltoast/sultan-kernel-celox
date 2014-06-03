@@ -174,19 +174,19 @@ static int set_vibetonz(int timeout)
 #if defined (CONFIG_KOR_MODEL_SHV_E110S)		
 		if (get_hw_rev() > 0x00 ){
 			vibtonz_en(1);
-			vibe_set_pwm_freq(258);
+			vibe_set_pwm_freq(258 * pwm_val / 100);
 			vib_isa1200_onoff(1);							
 		} else {
 			gpio_set_value(VIB_EN, VIBRATION_ON);			
 		}
 #elif defined (CONFIG_KOR_SHV_E120L_HD720) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined(CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) ||  defined (CONFIG_KOR_MODEL_SHV_E120L)
 		vibtonz_en(1);
-		vibe_set_pwm_freq(258);
+		vibe_set_pwm_freq(258 * pwm_val / 100);
 		vib_isa1200_onoff(1);							
 #elif defined (CONFIG_USA_MODEL_SGH_T989)|| defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_T769)
 		if (get_hw_rev() > 0x04 ){
 			vibtonz_en(1);
-			vibe_set_pwm_freq(258);
+			vibe_set_pwm_freq(258 * pwm_val / 100);
 			vib_isa1200_onoff(1);	
 		} else {
 			gpio_set_value(VIB_EN, VIBRATION_ON);			
@@ -194,14 +194,14 @@ static int set_vibetonz(int timeout)
 #elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I757) || defined(CONFIG_USA_MODEL_SGH_I577)
 
         vibtonz_en(1);
-        vibe_set_pwm_freq(258);
+        vibe_set_pwm_freq(258 * pwm_val / 100);
         vib_isa1200_onoff(1);   
 
 
 #elif defined (CONFIG_JPN_MODEL_SC_03D)
 		if (get_hw_rev() > 0x00 ){
 			vibtonz_en(1);
-			vibe_set_pwm_freq(258);
+			vibe_set_pwm_freq(258 * pwm_val / 100);
 			vib_isa1200_onoff(1);							
 		} else {
 			gpio_set_value(VIB_EN, VIBRATION_ON);			
@@ -286,8 +286,28 @@ static void vibetonz_start(void)
 	timer.function = vibetonz_timer_func;
 
 	ret = timed_output_dev_register(&timed_output_vt);
-	if(ret)
-		printk(KERN_ERR "[VIBETONZ] timed_output_dev_register is fail \n");	
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] timed_output_dev_register is fail \n");
+
+	ret = device_create_file(timed_output_vt.dev, &dev_attr_pwm_value);
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] device_create_file fail: pwm_value \n");
+
+	ret = device_create_file(timed_output_vt.dev, &dev_attr_pwm_max);
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] device_create_file fail: pwm_max \n");
+
+	ret = device_create_file(timed_output_vt.dev, &dev_attr_pwm_min);
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] device_create_file fail: pwm_min \n");
+
+	ret = device_create_file(timed_output_vt.dev, &dev_attr_pwm_default);
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] device_create_file fail: pwm_default \n");
+
+	ret = device_create_file(timed_output_vt.dev, &dev_attr_pwm_threshold);
+	if (ret < 0)
+		printk(KERN_ERR "[VIBETONZ] device_create_file fail: pwm_threshold \n");
 }
 
 
