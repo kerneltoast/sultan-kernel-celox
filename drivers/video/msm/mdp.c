@@ -2707,38 +2707,10 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	}
 	disable_irq(mdp_irq);
 
-	dsi_pll_vdda = regulator_get(&pdev->dev, "dsi_pll_vdda");
-	if (IS_ERR(dsi_pll_vdda)) {
-		dsi_pll_vdda = NULL;
-	} else {
-		if (mdp_rev == MDP_REV_42 || mdp_rev == MDP_REV_44) {
-			ret = regulator_set_voltage(dsi_pll_vdda, 1200000,
-				1200000);
-			if (ret) {
-				pr_err("set_voltage failed for dsi_pll_vdda, ret=%d\n",
-					ret);
-			}
-		}
-	}
-
-	dsi_pll_vddio = regulator_get(&pdev->dev, "dsi_pll_vddio");
-	if (IS_ERR(dsi_pll_vddio)) {
-		dsi_pll_vddio = NULL;
-	} else {
-		if (mdp_rev == MDP_REV_42) {
-			ret = regulator_set_voltage(dsi_pll_vddio, 1800000,
-				1800000);
-			if (ret) {
-				pr_err("set_voltage failed for dsi_pll_vddio, ret=%d\n",
-					ret);
-			}
-		}
-	}
-
-	footswitch = regulator_get(&pdev->dev, "vdd");
-	if (IS_ERR(footswitch)) {
+	footswitch = regulator_get(NULL, "fs_mdp");
+	if (IS_ERR(footswitch))
 		footswitch = NULL;
-	} else {
+	else {
 		regulator_enable(footswitch);
 		mdp_footswitch_on = 1;
 	}
