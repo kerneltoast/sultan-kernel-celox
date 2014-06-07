@@ -767,6 +767,14 @@ static void spi_read_id(u8 cmd, u8 *data, int num)
 	udelay(2);
 	LCD_CSX_HIGH
 }
+
+static int lcdc_gpio_array_num[] = {
+				103, /* spi_clk */
+				104, /* spi_cs  */
+				106, /* spi_mosi */
+				28, /* lcd_reset */
+};
+
 static void spi_init(void)
 {
 #if defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_T769)
@@ -774,9 +782,9 @@ static void spi_init(void)
 #endif
         DPRINT("start %s\n", __func__);
 	/* Setting the Default GPIO's */
-	spi_sclk = *(lcdc_ld9040_pdata->gpio_num);
-	spi_cs   = *(lcdc_ld9040_pdata->gpio_num + 1);
-	spi_sdi  = *(lcdc_ld9040_pdata->gpio_num + 2);
+	spi_sclk = *(lcdc_gpio_array_num);
+	spi_cs   = *(lcdc_gpio_array_num + 1);
+	spi_sdi  = *(lcdc_gpio_array_num + 2);
 	DPRINT("clk : %d, cs : %d, sdi : %d\n", spi_sclk,spi_cs , spi_sdi);
 #if 0
 #if (CONFIG_BOARD_REVISION == 0x00)
@@ -1262,6 +1270,54 @@ void ld9040_sleep_in(void)
 extern void key_led_control(int on);
 #endif
 
+static struct msm_gpio lcdc_gpio_config_data[] = {
+	{ GPIO_CFG(103, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_clk" },
+	{ GPIO_CFG(104, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_cs0" },
+	{ GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_mosi" },
+	{ GPIO_CFG(28, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "lcd_reset" },
+};
+static struct msm_gpio lcdc_gpio_off_config_data[] = {
+	{ GPIO_CFG(103, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_clk" },
+	{ GPIO_CFG(104, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_cs0" },
+	{ GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_mosi" },
+	{ GPIO_CFG(28, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "lcd_reset" },
+};
+extern int msm_gpios_request_enable(const struct msm_gpio *table, int size);
+extern void msm_gpios_disable_free(const struct msm_gpio *table, int size);
+static void lcdc_config_gpios(int enable)
+{
+		printk("ld9040 : lcdc_config_gpios [%d]\n", enable);
+	if (enable) 
+	{
+			int i;
+			int loop_count= ARRAY_SIZE(lcdc_gpio_config_data);
+			for( i=0; i<loop_count; i++)
+			{
+					gpio_tlmm_config(lcdc_gpio_config_data[i].gpio_cfg, 1);
+			}
+#if 0	
+		msm_gpios_request_enable(lcdc_gpio_config_data,
+						  ARRAY_SIZE(
+							  lcdc_gpio_config_data));
+#endif						      
+	} 
+	else
+	{
+			int i;
+			int loop_count= ARRAY_SIZE(lcdc_gpio_off_config_data);
+			for( i=0; i<loop_count; i++)
+			{
+					gpio_tlmm_config(lcdc_gpio_off_config_data[i].gpio_cfg, 1);
+			}
+	
+#if 0	
+		msm_gpios_disable_free(lcdc_gpio_config_data,
+						ARRAY_SIZE(
+							lcdc_gpio_config_data));
+#endif						    
+		}
+}
+
 static int lcdc_ld9040_panel_on(struct platform_device *pdev)
 {
 	mutex_lock(&lcd.lock);
@@ -1269,7 +1325,7 @@ static int lcdc_ld9040_panel_on(struct platform_device *pdev)
 	
 	if (!ld9040_state.disp_initialized) {
 		/* Configure reset GPIO that drives DAC */
-		lcdc_ld9040_pdata->panel_config_gpio(1);
+		lcdc_config_gpios(1);
 		spi_init();	/* LCD needs SPI */
 		ld9040_disp_powerup();
 		ld9040_disp_on();
@@ -1309,7 +1365,7 @@ static int lcdc_ld9040_panel_off(struct platform_device *pdev)
 		for (i = 0; i < POWER_OFF_SEQ; i++)
 			setting_table_write(&power_off_sequence[i]);
 
-		lcdc_ld9040_pdata->panel_config_gpio(0);
+		lcdc_config_gpios(0);
 		ld9040_state.display_on = FALSE;
 		ld9040_state.disp_initialized = FALSE;
 		ld9040_disp_powerdown();
@@ -1588,7 +1644,7 @@ static void lcdc_ld9040_set_backlight(struct msm_fb_data_type *mfd)
 					for (i = 0; i < POWER_OFF_SEQ; i++)
 						setting_table_write(&power_off_sequence[i]);
 
-					lcdc_ld9040_pdata->panel_config_gpio(0);
+					lcdc_config_gpios(0);
 					ld9040_state.display_on = FALSE;
 					ld9040_state.disp_initialized = FALSE;
 					ld9040_disp_powerdown();
@@ -2008,7 +2064,7 @@ static int ld9040_power(struct ld9040 *lcd, int power)
     {
     		DPRINT("ld9040_power : UNBLANK\n");
         /* Configure reset GPIO that drives DAC */
-		lcdc_ld9040_pdata->panel_config_gpio(1);
+		lcdc_config_gpios(1);
 		spi_init();	/* LCD needs SPI */
 		ld9040_disp_powerup();
 		ld9040_disp_on();
@@ -2022,7 +2078,7 @@ static int ld9040_power(struct ld9040 *lcd, int power)
         	for (i = 0; i < POWER_OFF_SEQ; i++)
         		setting_table_write(&power_off_sequence[i]);
 
-        	lcdc_ld9040_pdata->panel_config_gpio(0);
+        	lcdc_config_gpios(0);
         	ld9040_state.display_on = FALSE;
         	ld9040_state.disp_initialized = FALSE;
         	ld9040_disp_powerdown();
@@ -2128,7 +2184,7 @@ static void ld9040_early_suspend(struct early_suspend *h) {
 		for (i = 0; i < POWER_OFF_SEQ; i++)
 			setting_table_write(&power_off_sequence[i]);
 
-		lcdc_ld9040_pdata->panel_config_gpio(0);
+		lcdc_config_gpios(0);
 		ld9040_state.display_on = FALSE;
 		ld9040_state.disp_initialized = FALSE;
 		ld9040_disp_powerdown();
@@ -2164,7 +2220,7 @@ static void ld9040_late_resume(struct early_suspend *h) {
 		mutex_lock(&lcd.lock);
 		if (!ld9040_state.disp_initialized) {
 			/* Configure reset GPIO that drives DAC */
-			lcdc_ld9040_pdata->panel_config_gpio(1);
+			lcdc_config_gpios(1);
 			spi_init();	/* LCD needs SPI */
 			ld9040_disp_powerup();
 			ld9040_disp_on();

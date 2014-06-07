@@ -4363,68 +4363,6 @@ static struct platform_device lcdc_auo_wvga_panel_device = {
 
 #if defined (CONFIG_FB_MSM_LCDC_LD9040_WVGA_PANEL) || defined (CONFIG_FB_MSM_LCDC_S6E63M0_WVGA_PANEL)
 
-static int lcdc_gpio_array_num[] = {
-				103, /* spi_clk */
-				104, /* spi_cs  */
-				106, /* spi_mosi */
-				28, /* lcd_reset */
-};
-
-static struct msm_gpio lcdc_gpio_config_data[] = {
-	{ GPIO_CFG(103, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_clk" },
-	{ GPIO_CFG(104, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_cs0" },
-	{ GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "spi_mosi" },
-	{ GPIO_CFG(28, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA), "lcd_reset" },
-};
-static struct msm_gpio lcdc_gpio_off_config_data[] = {
-	{ GPIO_CFG(103, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_clk" },
-	{ GPIO_CFG(104, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_cs0" },
-	{ GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "spi_mosi" },
-	{ GPIO_CFG(28, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), "lcd_reset" },
-};
-extern int msm_gpios_request_enable(const struct msm_gpio *table, int size);
-extern void msm_gpios_disable_free(const struct msm_gpio *table, int size);
-static void lcdc_config_gpios(int enable)
-{
-		printk("ld9040 : lcdc_config_gpios [%d]\n", enable);
-	if (enable) 
-	{
-			int i;
-			int loop_count= ARRAY_SIZE(lcdc_gpio_config_data);
-			for( i=0; i<loop_count; i++)
-			{
-					gpio_tlmm_config(lcdc_gpio_config_data[i].gpio_cfg, 1);
-			}
-#if 0	
-		msm_gpios_request_enable(lcdc_gpio_config_data,
-						  ARRAY_SIZE(
-							  lcdc_gpio_config_data));
-#endif						      
-	} 
-	else
-	{
-			int i;
-			int loop_count= ARRAY_SIZE(lcdc_gpio_off_config_data);
-			for( i=0; i<loop_count; i++)
-			{
-					gpio_tlmm_config(lcdc_gpio_off_config_data[i].gpio_cfg, 1);
-			}
-	
-#if 0	
-		msm_gpios_disable_free(lcdc_gpio_config_data,
-						ARRAY_SIZE(
-							lcdc_gpio_config_data));
-#endif						    
-		}
-}
-
-static struct msm_panel_common_pdata lcdc_panel_data = {
-#ifndef CONFIG_SPI_QSD
-	.panel_config_gpio = lcdc_config_gpios,
-	.gpio_num          = lcdc_gpio_array_num,
-#endif
-};
-
 #if defined (CONFIG_FB_MSM_LCDC_S6E63M0_WVGA_PANEL)
 static struct platform_device lcdc_ld9040_panel_device = {
 	.name   = "lcdc_S6E63M0_wvga",
@@ -4436,9 +4374,6 @@ static struct platform_device lcdc_ld9040_panel_device = {
 static struct platform_device lcdc_ld9040_panel_device = {
 	.name   = "lcdc_ld9040_wvga",
 	.id     = 0,
-	.dev    = {
-		.platform_data = &lcdc_panel_data,
-	}
 #endif
 };
 #endif
