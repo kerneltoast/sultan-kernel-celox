@@ -14145,7 +14145,7 @@ int lcdc_LD9040_panel_power(int enable)
 	int panel_voltage;
 	static int panel_voltage_after = 2700000;
 
-	panel_voltage = (3100000 - (panel_uv * 1000));
+	panel_voltage = (3000000 - (panel_uv * 1000));
 
 	printk("[kmj] %s:enable:%d\n", __FUNCTION__, enable);
 
