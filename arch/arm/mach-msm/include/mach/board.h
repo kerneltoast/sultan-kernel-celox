@@ -357,9 +357,8 @@ struct msm_panel_common_pdata {
 	u32 splash_screen_addr;
 	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
+	int (*mdp_gamma)(void);
 };
-
-
 
 struct lcdc_platform_data {
 	int (*lcdc_gpio_config)(int on);
