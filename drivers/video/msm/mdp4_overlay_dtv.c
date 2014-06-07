@@ -31,7 +31,6 @@
 #include "msm_fb.h"
 #include "hdmi_msm.h"
 #include "mdp4.h"
-#include "hdmi_msm.h"
 
 #define DTV_BASE	0xD0000
 
@@ -72,6 +71,7 @@ static struct vsycn_ctrl {
 	int update_ndx;
 	int dmae_intr_cnt;
 	atomic_t suspend;
+	int dmae_wait_cnt;
 	int blt_change;
 	int sysfs_created;
 	struct mutex update_lock;
@@ -238,17 +238,11 @@ int mdp4_dtv_pipe_commit(int cndx, int wait)
 	mutex_unlock(&vctrl->update_lock);
 
 	pipe = vp->plist;
-	vctrl->mfd->cached_reg_cnt = 0;
 	for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
 		if (pipe->pipe_used) {
 			cnt++;
 			real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
 			if (real_pipe && real_pipe->pipe_used) {
-				pipe->mfd = vctrl->mfd;
-				if (!wait || vctrl->base_pipe->ov_blt_addr)
-					pipe->mfd->cache_reg_en = false;
-				else
-					pipe->mfd->cache_reg_en = true;
 				/* pipe not unset */
 				mdp4_overlay_vsync_commit(pipe);
 			}
@@ -623,14 +617,6 @@ int mdp4_dtv_on(struct platform_device *pdev)
 	vctrl->dev = mfd->fbi->dev;
 	vctrl->vsync_irq_enabled = 0;
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || \
-		defined(CONFIG_VIDEO_MHL_TAB_V2)
-	if (!hdmi_msm_state->hpd_on_offline) {
-		pr_info("hdmi_online is not\n");
-		return -ENODEV;
-	}
-#endif
-
 	mdp_footswitch_ctrl(TRUE);
 	/* Mdp clock enable */
 	mdp_clk_ctrl(1);
@@ -681,14 +667,6 @@ int mdp4_dtv_off(struct platform_device *pdev)
 	struct mdp4_overlay_pipe *pipe;
 	struct vsync_update *vp;
 	int mixer = 0;
-
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || \
-		defined(CONFIG_VIDEO_MHL_TAB_V2)
-	if (hdmi_msm_state->hpd_on_offline) {
-		pr_info("hpd_offline is not\n");
-		return -ENODEV;
-	}
-#endif
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
 
@@ -973,7 +951,6 @@ void mdp4_dmae_done_dtv(void)
 	vctrl = &vsync_ctrl_db[cndx];
 	pipe = vctrl->base_pipe;
 	pr_debug("%s: cpu=%d\n", __func__, smp_processor_id());
-	mdp4_overlay_update_cached_reg(vctrl->mfd);
 
 	spin_lock(&vctrl->spin_lock);
 	if (vctrl->blt_change) {

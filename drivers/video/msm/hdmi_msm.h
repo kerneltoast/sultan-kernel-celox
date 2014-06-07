@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -33,19 +33,17 @@ uint32 hdmi_inp(uint32 offset);
 #define HDMI_INP(offset)		inpdw(MSM_HDMI_BASE+(offset))
 #endif
 
-// a software workaround for a potential HW problem with HDMI which exists on V1 and V2 8660 units
-#define WORKAROUND_FOR_HDMI_CURRENT_LEAKAGE_FIX
-
 
 /*
  * Ref. HDMI 1.4a
  * Supplement-1 CEC Section 6, 7
  */
+#define CEC_MAX_OPERAND_SIZE 15
 struct hdmi_msm_cec_msg {
 	uint8 sender_id;
 	uint8 recvr_id;
 	uint8 opcode;
-	uint8 operand[15];
+	uint8 operand[CEC_MAX_OPERAND_SIZE];
 	uint8 frame_size;
 	uint8 retransmit;
 };
@@ -59,7 +57,6 @@ struct hdmi_msm_state_type {
 #ifdef CONFIG_SUSPEND
 	boolean pm_suspended;
 #endif
-	boolean hpd_cable_chg_detected;
 	boolean full_auth_done;
 	boolean hpd_during_auth;
 	struct work_struct hpd_state_work;
@@ -109,13 +106,7 @@ struct hdmi_msm_state_type {
 	void __iomem *hdmi_io;
 
 	struct external_common_state_type common;
-	boolean hpd_on_offline;
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || \
-		defined(CONFIG_VIDEO_MHL_TAB_V2)
-	boolean mhl_hpd_state;
-#endif
-	boolean	boot_completion;
-
+	boolean is_mhl_enabled;
 	struct completion hpd_event_processed;
 };
 
@@ -141,5 +132,5 @@ void hdmi_msm_cec_msg_recv(void);
 void hdmi_msm_cec_one_touch_play(void);
 void hdmi_msm_cec_msg_send(struct hdmi_msm_cec_msg *msg);
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
-
+void mhl_connect_api(boolean on);
 #endif /* __HDMI_MSM_H__ */

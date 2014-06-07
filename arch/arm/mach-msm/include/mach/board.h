@@ -332,8 +332,12 @@ enum msm_mdp_hw_revision {
 struct msm_panel_common_pdata {
 	uintptr_t hw_revision_addr;
 	int gpio;
+	bool bl_lock;
+	spinlock_t bl_spinlock;
 	int (*backlight_level)(int level, int max, int min);
 	int (*pmic_backlight)(int level);
+	int (*rotate_panel)(void);
+	int (*backlight) (int level, int mode);
 	int (*panel_num)(void);
 	void (*panel_config_gpio)(int);
 	int (*vga_switch)(int select_vga);
@@ -350,7 +354,8 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
-	int (*mdp_gamma)(void);
+	u32 splash_screen_addr;
+	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
 };
 
@@ -363,6 +368,7 @@ struct lcdc_platform_data {
 #ifdef CONFIG_MSM_BUS_SCALING
 	struct msm_bus_scale_pdata *bus_scale_table;
 #endif
+	int (*lvds_pixel_remap)(void);
 };
 
 struct tvenc_platform_data {
@@ -407,14 +413,25 @@ struct mipi_dsi_panel_platform_data {
 	int fpga_3d_config_addr;
 	int *gpio;
 	struct mipi_dsi_phy_ctrl *phy_ctrl_settings;
-	void (*dsi_pwm_cfg)(void);
 	char dlane_swap;
+	void (*dsi_pwm_cfg)(void);
+	char enable_wled_bl_ctrl;
+	void (*gpio_set_backlight)(int bl_level);
+};
+
+struct lvds_panel_platform_data {
+	int *gpio;
+};
+
+struct msm_wfd_platform_data {
+	char (*wfd_check_mdp_iommu_split)(void);
 };
 
 #define PANEL_NAME_MAX_LEN 50
 struct msm_fb_platform_data {
 	int (*detect_client)(const char *name);
 	int mddi_prescan;
+	unsigned char ext_resolution;
 	int (*allow_set_offset)(void);
 	char prim_panel_name[PANEL_NAME_MAX_LEN];
 	char ext_panel_name[PANEL_NAME_MAX_LEN];
@@ -431,7 +448,25 @@ struct msm_hdmi_platform_data {
 	int (*gpio_config)(int on);
 	int (*init_irq)(void);
 	bool (*check_hdcp_hw_support)(void);
-	int bootup_ck;
+	bool (*source)(void);
+	bool is_mhl_enabled;
+};
+
+struct msm_mhl_platform_data {
+	int irq;
+	/* GPIO no. for mhl intr */
+	uint32_t gpio_mhl_int;
+	/* GPIO no. for mhl block reset */
+	uint32_t gpio_mhl_reset;
+	/*
+	 * below gpios are specific to targets
+	 * that have the integrated MHL soln.
+	 */
+	/* GPIO no. for mhl block power */
+	uint32_t gpio_mhl_power;
+	/* GPIO no. for hdmi-mhl mux */
+	uint32_t gpio_hdmi_mhl_mux;
+	bool mhl_enabled;
 };
 
 struct msm_i2c_platform_data {

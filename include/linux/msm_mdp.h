@@ -1,7 +1,7 @@
 /* include/linux/msm_mdp.h
  *
  * Copyright (C) 2007 Google Incorporated
- * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -68,13 +68,13 @@
 						struct msmfb_data)
 #define MSMFB_WRITEBACK_TERMINATE _IO(MSMFB_IOCTL_MAGIC, 155)
 #define MSMFB_MDP_PP _IOWR(MSMFB_IOCTL_MAGIC, 156, struct msmfb_mdp_pp)
-
-#define MSMFB_OVERLAY_VSYNC_CTRL  _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
+#define MSMFB_OVERLAY_VSYNC_CTRL _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
 #define MSMFB_VSYNC_CTRL  _IOW(MSMFB_IOCTL_MAGIC, 161, unsigned int)
-
 #define MSMFB_BUFFER_SYNC  _IOW(MSMFB_IOCTL_MAGIC, 162, struct mdp_buf_sync)
 #define MSMFB_DISPLAY_COMMIT      _IOW(MSMFB_IOCTL_MAGIC, 164, \
 						struct mdp_display_commit)
+#define MSMFB_WRITEBACK_SET_MIRRORING_HINT _IOW(MSMFB_IOCTL_MAGIC, 165, \
+						unsigned int)
 #define MSMFB_METADATA_GET  _IOW(MSMFB_IOCTL_MAGIC, 166, struct msmfb_metadata)
 
 #define FB_TYPE_3D_PANEL 0x10101010
@@ -132,6 +132,7 @@ enum {
 	NUM_HSIC_PARAM,
 };
 
+#define MDSS_MDP_ROT_ONLY		0x80
 #define MDSS_MDP_RIGHT_MIXER		0x100
 
 /* mdp_blit_req flag values */
@@ -430,7 +431,7 @@ enum {
 
 /*
  * mdp_histogram_start_req is used to provide the parameters for
- *histogram start request
+ * histogram start request
  */
 
 struct mdp_histogram_start_req {
@@ -440,12 +441,10 @@ struct mdp_histogram_start_req {
 	uint8_t num_bins;
 };
 
-
 /*
  * mdp_histogram_data is used to return the histogram data, once
  * the histogram is done/stopped/cance
  */
-
 
 struct mdp_histogram_data {
 	uint32_t block;
@@ -512,6 +511,12 @@ struct mdp_bl_scale_data {
 	uint32_t scale;
 };
 
+struct mdp_calib_config_data {
+	uint32_t ops;
+	uint32_t addr;
+	uint32_t data;
+};
+
 struct mdp_pa_cfg_data {
 	uint32_t block;
 	struct mdp_pa_cfg pa_data;
@@ -521,8 +526,9 @@ enum {
 	mdp_op_pcc_cfg,
 	mdp_op_csc_cfg,
 	mdp_op_lut_cfg,
-	mdp_bl_scale_cfg,
 	mdp_op_qseed_cfg,
+	mdp_bl_scale_cfg,
+	mdp_op_calib_cfg,
 	mdp_op_pa_cfg,
 	mdp_op_max,
 };
@@ -533,8 +539,9 @@ struct msmfb_mdp_pp {
 		struct mdp_pcc_cfg_data pcc_cfg_data;
 		struct mdp_csc_cfg_data csc_cfg_data;
 		struct mdp_lut_cfg_data lut_cfg_data;
-		struct mdp_bl_scale_data bl_scale_data;
 		struct mdp_qseed_cfg_data qseed_cfg_data;
+		struct mdp_bl_scale_data bl_scale_data;
+		struct mdp_calib_config_data calib_cfg;
 		struct mdp_pa_cfg_data pa_cfg_data;
 	} data;
 };
@@ -545,9 +552,6 @@ enum {
 	metadata_op_frame_rate,
 	metadata_op_max
 };
-
-#define MDP_MAX_FENCE_FD	10
-#define MDP_BUF_SYNC_FLAG_WAIT	1
 
 struct mdp_blend_cfg {
 	uint32_t is_premultiplied;
@@ -562,12 +566,21 @@ struct msmfb_metadata {
 	} data;
 };
 
+#define MDP_MAX_FENCE_FD	10
+#define MDP_BUF_SYNC_FLAG_WAIT	1
+
 struct mdp_buf_sync {
 	uint32_t flags;
 	uint32_t acq_fen_fd_cnt;
 	int *acq_fen_fd;
 	int *rel_fen_fd;
-	int *retire_fen_fd;
+};
+
+struct mdp_buf_fence {
+	uint32_t flags;
+	uint32_t acq_fen_fd_cnt;
+	int acq_fen_fd[MDP_MAX_FENCE_FD];
+	int rel_fen_fd[MDP_MAX_FENCE_FD];
 };
 
 #define MDP_DISPLAY_COMMIT_OVERLAY 0x00000001
@@ -602,6 +615,13 @@ struct msmfb_mixer_info_req {
 enum {
 	DISPLAY_SUBSYSTEM_ID,
 	ROTATOR_SUBSYSTEM_ID,
+};
+
+enum {
+	MDP_WRITEBACK_MIRROR_OFF,
+	MDP_WRITEBACK_MIRROR_ON,
+	MDP_WRITEBACK_MIRROR_PAUSE,
+	MDP_WRITEBACK_MIRROR_RESUME,
 };
 
 #ifdef __KERNEL__

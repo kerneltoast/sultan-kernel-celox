@@ -15,26 +15,17 @@
 #include <linux/switch.h>
 #include <video/msm_hdmi_modes.h>
 
-#define DEV_INFO_ENA
-
-#define DEBUG
 #ifdef DEBUG
 #ifndef DEV_DBG_PREFIX
 #define DEV_DBG_PREFIX "EXT_INTERFACE: "
 #endif
-#define DEV_DBG(args...)	dev_info(external_common_state->dev, args)
+#define DEV_DBG(args...)	pr_debug(DEV_DBG_PREFIX args)
 #else
 #define DEV_DBG(args...)	(void)0
 #endif /* DEBUG */
-#ifdef DEV_INFO_ENA
 #define DEV_INFO(args...)	dev_info(external_common_state->dev, args)
-#define DEV_WARN(args...)	dev_info(external_common_state->dev, args)
-#define DEV_ERR(args...)	dev_info(external_common_state->dev, args)
-#else
-#define DEV_INFO(args...)	 do {} while (0)
-#define DEV_WARN(args...)	 do {} while (0)
-#define DEV_ERR(args...)	 do {} while (0)
-#endif
+#define DEV_WARN(args...)	dev_warn(external_common_state->dev, args)
+#define DEV_ERR(args...)	dev_err(external_common_state->dev, args)
 
 #if defined(CONFIG_FB_MSM_HDMI_COMMON)
 extern int ext_resolution;
@@ -90,8 +81,8 @@ struct external_common_state_type {
 	uint8 pt_scan_info;
 	uint8 it_scan_info;
 	uint8 ce_scan_info;
-	uint8 spd_vendor_name[8];
-	uint8 spd_product_description[16];
+	uint8 spd_vendor_name[9];
+	uint8 spd_product_description[17];
 	boolean present_3d;
 	boolean present_hdcp;
 	uint8 audio_data_block[MAX_AUDIO_DATA_BLOCK_SIZE];
@@ -101,7 +92,6 @@ struct external_common_state_type {
 	int (*read_edid_block)(int block, uint8 *edid_buf);
 	int (*hpd_feature)(int on);
 #endif
-	uint16 audio_speaker_data;
 };
 
 /* The external interface driver needs to initialize the common state. */
@@ -121,7 +111,7 @@ const struct msm_hdmi_mode_timing_info *hdmi_mhl_get_supported_mode(
 	uint32 mode);
 void hdmi_common_init_panel_info(struct msm_panel_info *pinfo);
 
-ssize_t video_3d_format_2string(uint32 format, char *buf);
+ssize_t video_3d_format_2string(uint32 format, char *buf, u32 size);
 #endif
 
 int external_common_state_create(struct platform_device *pdev);

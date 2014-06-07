@@ -232,17 +232,11 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 	}
 
 	pipe = vp->plist;
-	vctrl->mfd->cached_reg_cnt = 0;
 	for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
 		if (pipe->pipe_used) {
 			cnt++;
 			real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
 			if (real_pipe && real_pipe->pipe_used) {
-				pipe->mfd = vctrl->mfd;
-				if (!wait || vctrl->base_pipe->ov_blt_addr)
-					pipe->mfd->cache_reg_en = false;
-				else
-					pipe->mfd->cache_reg_en = true;
 				/* pipe not unset */
 				mdp4_overlay_vsync_commit(pipe);
 			}
@@ -394,8 +388,7 @@ static void mdp4_lcdc_wait4dmap(int cndx)
 	if (atomic_read(&vctrl->suspend) > 0)
 		return;
 
-	if (!wait_for_completion_timeout(&vctrl->dmap_comp, msecs_to_jiffies(100)))
-		pr_err("%s %d  TIMEOUT_\n", __func__, __LINE__);
+	wait_for_completion(&vctrl->dmap_comp);
 }
 
 static void mdp4_lcdc_wait4ov(int cndx)
@@ -412,8 +405,7 @@ static void mdp4_lcdc_wait4ov(int cndx)
 	if (atomic_read(&vctrl->suspend) > 0)
 		return;
 
-	if (!wait_for_completion_timeout(&vctrl->ov_comp, msecs_to_jiffies(100)))
-		pr_err("%s %d  TIMEOUT_\n", __func__, __LINE__);
+	wait_for_completion(&vctrl->ov_comp);
 }
 
 ssize_t mdp4_lcdc_show_event(struct device *dev,
@@ -593,6 +585,7 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 		pipe = vctrl->base_pipe;
 	}
 
+
 	pipe->src_height = fbi->var.yres;
 	pipe->src_width = fbi->var.xres;
 	pipe->src_h = fbi->var.yres;
@@ -645,7 +638,12 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 	lcdc_bpp = mfd->panel_info.bpp;
 
 	hsync_period =
-	    hsync_pulse_width + h_back_porch + lcdc_width + h_front_porch;
+	    hsync_pulse_width + h_back_porch + h_front_porch;
+	if ((mfd->panel_info.type == LVDS_PANEL) &&
+		(mfd->panel_info.lvds.channel_mode == LVDS_DUAL_CHANNEL_MODE))
+		hsync_period += lcdc_width / 2;
+	else
+		hsync_period += lcdc_width;
 	hsync_ctrl = (hsync_period << 16) | hsync_pulse_width;
 	hsync_start_x = hsync_pulse_width + h_back_porch;
 	hsync_end_x = hsync_period - h_front_porch - 1;
@@ -680,18 +678,19 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 
 
 #ifdef CONFIG_FB_MSM_MDP40
-	hsync_polarity = 1;
-	vsync_polarity = 1;
+	if (mfd->panel_info.lcdc.is_sync_active_high) {
+		hsync_polarity = 0;
+		vsync_polarity = 0;
+	} else {
+		hsync_polarity = 1;
+		vsync_polarity = 1;
+	}
 	lcdc_underflow_clr |= 0x80000000;	/* enable recovery */
 #else
 	hsync_polarity = 0;
 	vsync_polarity = 0;
 #endif
-#ifdef CONFIG_SAMSUNG_8X60_TABLET
 	data_en_polarity = 0;
-#else
-	data_en_polarity = 1;
-#endif
 
 	ctrl_polarity =
 	    (data_en_polarity << 2) | (vsync_polarity << 1) | (hsync_polarity);
@@ -901,12 +900,6 @@ void mdp4_dmap_done_lcdc(int cndx)
 
 	spin_lock(&vctrl->spin_lock);
 	vsync_irq_disable(INTR_DMA_P_DONE, MDP_DMAP_TERM);
-
-	if (pipe == NULL) {
-		spin_unlock(&vctrl->spin_lock);
-		return;
-	}
-
 	if (vctrl->blt_change) {
 		mdp4_overlayproc_cfg(pipe);
 		mdp4_overlay_dmap_xy(pipe);
@@ -947,12 +940,6 @@ void mdp4_overlay0_done_lcdc(int cndx)
 	vsync_irq_disable(INTR_OVERLAY0_DONE, MDP_OVERLAY0_TERM);
 	vctrl->ov_done++;
 	complete_all(&vctrl->ov_comp);
-
-	if (pipe == NULL) {
-		spin_unlock(&vctrl->spin_lock);
-		return;
-	}
-
 	if (pipe->ov_blt_addr == 0) {
 		spin_unlock(&vctrl->spin_lock);
 		return;
