@@ -4,7 +4,7 @@
  *
  *  Copyright (C) 2002-2003  Maxim Krasnyansky <maxk@qualcomm.com>
  *  Copyright (C) 2004-2005  Marcel Holtmann <marcel@holtmann.org>
- *  Copyright (c) 2000-2001, 2010, Code Aurora Forum. All rights reserved.
+ *  Copyright (c) 2000-2001, 2010, The Linux Foundation. All rights reserved.
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -75,6 +75,7 @@ struct hci_uart {
 
 /* HCI_UART proto flag bits */
 #define HCI_UART_PROTO_SET			0
+#define HCI_UART_PROTO_SET_IN_PROGRESS		1
 
 /* TX states  */
 #define HCI_UART_SENDING	1
