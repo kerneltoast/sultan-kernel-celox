@@ -33,7 +33,7 @@
 #include <asm/mach-types.h>
 
 #define BT_UART_CFG
-#define BT_LPM_ENABLE
+//#define BT_LPM_ENABLE
 
 #define GPIO_BT_WAKE        86
 #define GPIO_BT_HOST_WAKE   127
@@ -316,18 +316,18 @@ static struct platform_device msm_bluesleep_device = {
 	.num_resources	= ARRAY_SIZE(bluesleep_resources),
 	.resource	= bluesleep_resources,
 };
+#endif
 
 static void gpio_rev_init(void)
 {
     bt_config_gpio_table_generic(bt_uart_off_table, ARRAY_SIZE(bt_uart_off_table));
 }
-#endif
 
 static int __init bcm4330_bluetooth_init(void)
 {
-#ifdef BT_LPM_ENABLE
 	gpio_rev_init();
     printk(KERN_ERR "[BT] bcm4330_bluetooth_init \n");
+#ifdef BT_LPM_ENABLE
 	platform_device_register(&msm_bluesleep_device);
 #endif
 	return platform_driver_register(&bcm4330_bluetooth_platform_driver);
