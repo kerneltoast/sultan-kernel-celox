@@ -32,8 +32,6 @@
 #include <linux/wakelock.h>
 #include <asm/mach-types.h>
 
-#include "devices.h"
-
 #define BT_UART_CFG
 #define BT_LPM_ENABLE
 
@@ -325,17 +323,12 @@ static void gpio_rev_init(void)
 }
 #endif
 
-#ifdef BT_LPM_ENABLE
-extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
-#endif
-
 static int __init bcm4330_bluetooth_init(void)
 {
 #ifdef BT_LPM_ENABLE
 	gpio_rev_init();
     printk(KERN_ERR "[BT] bcm4330_bluetooth_init \n");
 	platform_device_register(&msm_bluesleep_device);
-	bluesleep_setup_uart_port(&msm_device_uart_dm1);
 #endif
 	return platform_driver_register(&bcm4330_bluetooth_platform_driver);
 }
