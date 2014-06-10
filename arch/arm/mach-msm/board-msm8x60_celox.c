@@ -14145,7 +14145,7 @@ static int mipi_S6E8AA0_panel_power(int enable)
 }
 #endif
 
-static int panel_uv = 300;
+static int panel_uv = 0;
 module_param(panel_uv, int, 0664);
 
 void lcdc_panel_uv(int panel_undervolt)
@@ -14159,7 +14159,7 @@ int lcdc_LD9040_panel_power(int enable)
 	static struct regulator *l19 = NULL;
 	int ret;
 	int panel_voltage;
-	static int panel_voltage_after = 2700000;
+	static int panel_voltage_after = 3000000;
 
 	panel_voltage = (3000000 - (panel_uv * 1000));
 
@@ -14182,7 +14182,7 @@ int lcdc_LD9040_panel_power(int enable)
 		if (IS_ERR(l19))
 			return -1;
 
-		ret = regulator_set_voltage(l19, 2700000, 2700000);
+		ret = regulator_set_voltage(l19, 3000000, 3000000);
 		if (ret) {
 			printk("%s: error setting voltage\n", __func__);
 		}
