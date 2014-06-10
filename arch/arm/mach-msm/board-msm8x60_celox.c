@@ -7842,7 +7842,7 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 #if defined (CONFIG_FB_MSM_MIPI_S6E8AA0_HD720_PANEL)
 	RPM_LDO(PM8058_L19, 0, 1, 0, 3000000, 3300000, LDO150HMIN),
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_TARGET_LOCALE_USA)
-	RPM_LDO(PM8058_L19, 0, 1, 0, 2500000, 3000000, LDO150HMIN),
+	RPM_LDO(PM8058_L19, 0, 1, 0, 3000000, 3000000, LDO150HMIN),
 #else
 	RPM_LDO(PM8058_L19, 0, 1, 0, 2500000, 2500000, LDO150HMIN),
 #endif
@@ -14145,80 +14145,38 @@ static int mipi_S6E8AA0_panel_power(int enable)
 }
 #endif
 
-static int panel_uv = 0;
-module_param(panel_uv, int, 0664);
-
-void lcdc_panel_uv(int panel_undervolt)
-{
-	panel_uv = panel_undervolt;
-}
-
-int lcdc_LD9040_panel_power(int enable)
+ static int lcdc_LD9040_panel_power(int enable)
 {
 	static struct regulator *l3 = NULL;
-	static struct regulator *l19 = NULL;
+    static struct regulator *l19 = NULL;
 	int ret;
-	int panel_voltage;
-	static int panel_voltage_after = 3000000;
-
-	panel_voltage = (3000000 - (panel_uv * 1000));
 
 	printk("[kmj] %s:enable:%d\n", __FUNCTION__, enable);
 
-	if(l3 == NULL) {
-		l3 = regulator_get(NULL, "8058_l3");
-		if (IS_ERR(l3))
+    if(l3 == NULL)
+    {
+        	l3 = regulator_get(NULL, "8058_l3");
+        	if (IS_ERR(l3))
         		return -1;
 
-		ret = regulator_set_voltage(l3, 1800000, 1800000);
-		if (ret) {
+        	ret = regulator_set_voltage(l3, 1800000, 1800000);
+        	if (ret) {
         		printk("%s: error setting voltage\n", __func__);
-		}
-	}
+        	}
+    }
             
-	if(l19 == NULL)
-	{
-		l19 = regulator_get(NULL, "8058_l19");
-		if (IS_ERR(l19))
-			return -1;
+    if(l19 == NULL)
+    {            
+        	l19 = regulator_get(NULL, "8058_l19");
+        	if (IS_ERR(l19))
+        		return -1;
 
-		ret = regulator_set_voltage(l19, 3000000, 3000000);
-		if (ret) {
-			printk("%s: error setting voltage\n", __func__);
-		}
-	}
-
-	if (panel_voltage != panel_voltage_after) {
-		// Do nothing if panel voltage has already been transformed
-		if (panel_voltage_after != panel_voltage) {
-			// Check if requested panel voltage is in bounds
-			if ((panel_voltage < 2500000) || (panel_voltage > 3000000)) {
-				printk("%s: %dmV is out of range\n", __func__, panel_uv);
-				printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
-				panel_voltage = panel_voltage_after;
-				lcdc_panel_uv((3000000 - panel_voltage)/1000);
-			} else {
-				// Check if requested panel voltage is a multiple
-				// of 25mV
-				if ((panel_voltage % 25000) != 0) {
-					printk("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
-					printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
-					panel_voltage = panel_voltage_after;
-					lcdc_panel_uv((3000000 - panel_voltage)/1000);
-				} else {
-					ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
-					if (ret)
-						printk("%s: error setting panel voltage\n", __func__);
-					else
-						printk("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
-
-					panel_voltage_after = panel_voltage;
-					lcdc_panel_uv((3000000 - panel_voltage_after)/1000);
-				}
-			}
-		}
-	}
-
+        	ret = regulator_set_voltage(l19, 3000000, 3000000);
+        	if (ret) {
+        		printk("%s: error setting voltage\n", __func__);
+        	}
+    }
+    
 	if (enable) {
 
         	ret = regulator_enable(l3);
@@ -14249,6 +14207,9 @@ int lcdc_LD9040_panel_power(int enable)
 static void lcdc_samsung_panel_power(int on)
 {
 	int n, ret = 0;
+
+//	display_common_power(on);
+    lcdc_LD9040_panel_power(on);
 
 	for (n = 0; n < LCDC_NUM_GPIO; n++) {
 		if (on) {
