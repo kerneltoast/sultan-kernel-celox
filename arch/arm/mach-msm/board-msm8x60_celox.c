@@ -14196,7 +14196,6 @@ int lcdc_LD9040_panel_power(int enable)
 				printk("%s: %dmV is out of range\n", __func__, panel_uv);
 				printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
 				panel_voltage = panel_voltage_after;
-				lcdc_panel_uv((3000000 - panel_voltage)/1000);
 			} else {
 				// Check if requested panel voltage is a multiple
 				// of 25mV
@@ -14204,7 +14203,6 @@ int lcdc_LD9040_panel_power(int enable)
 					printk("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
 					printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
 					panel_voltage = panel_voltage_after;
-					lcdc_panel_uv((3000000 - panel_voltage)/1000);
 				} else {
 					ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
 					if (ret)
@@ -14213,10 +14211,11 @@ int lcdc_LD9040_panel_power(int enable)
 						printk("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
 
 					panel_voltage_after = panel_voltage;
-					lcdc_panel_uv((3000000 - panel_voltage_after)/1000);
 				}
 			}
 		}
+
+		lcdc_panel_uv((3000000 - panel_voltage)/1000);
 	}
 
 	if (enable) {
