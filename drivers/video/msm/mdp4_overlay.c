@@ -343,43 +343,24 @@ int mdp4_overlay_iommu_map_buf(int mem_id,
 		if(map_size < size)
 			map_size = size;
 
-		if ((DISPLAY_READ_DOMAIN == 2) && (GEN_POOL == 2)) {
-			while (ion_map_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, map_size, start,
-					len, 0, 0)) {
-				ion_unmap_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL);
-				ion_map_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, map_size, start,
-					len, 0, 0);
-			}
-		} else if (ion_map_iommu(display_iclient, *srcp_ihdl,
+		while (ion_map_iommu(display_iclient, *srcp_ihdl,
 				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, map_size, start,
 				len, 0, 0)) {
-			ion_free(display_iclient, *srcp_ihdl);
-			pr_err("%s(): ion_map_iommu() failed\n",
-					__func__);
-			return -EINVAL;
+			ion_unmap_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL);
+			ion_map_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, map_size, start,
+				len, 0, 0);
 		}
 	} else {
-
-		if ((DISPLAY_READ_DOMAIN == 2) && (GEN_POOL == 2)) {
-			while (ion_map_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
-					len, 0, 0)) {
-				ion_unmap_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL);
-				ion_map_iommu(display_iclient, *srcp_ihdl,
-					DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
-					len, 0, 0);
-			}
-		} else if (ion_map_iommu(display_iclient, *srcp_ihdl,
+		while (ion_map_iommu(display_iclient, *srcp_ihdl,
 				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
 				len, 0, 0)) {
-			ion_free(display_iclient, *srcp_ihdl);
-			pr_err("%s(): ion_map_iommu() failed\n",
-					__func__);
-			return -EINVAL;
+			ion_unmap_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL);
+			ion_map_iommu(display_iclient, *srcp_ihdl,
+				DISPLAY_READ_DOMAIN, GEN_POOL, SZ_4K, 0, start,
+				len, 0, 0);
 		}
 	}
 	mutex_lock(&iommu_mutex);
