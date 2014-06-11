@@ -489,7 +489,7 @@ int ion_handle_get_size(struct ion_client *client, struct ion_handle *handle,
  * Decrement the reference count on the iommu mapping. If the count is
  * 0, the mapping will be removed from the iommu.
  */
-void ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
+int ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
 			int domain_num, int partition_num);
 
 
