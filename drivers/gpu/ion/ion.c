@@ -746,8 +746,13 @@ int ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
 	iommu_map = ion_iommu_lookup(buffer, domain_num, partition_num);
 
 	if (!iommu_map) {
-		WARN(1, "%s: (%d,%d) was never mapped for %p\n", __func__,
-				domain_num, partition_num, buffer);
+		if ((domain_num == 2) && (partition_num == 2))
+			pr_err("%s: (%d,%d) was never mapped for %p\n", __func__,
+					domain_num, partition_num, buffer);
+		else
+			WARN(1, "%s: (%d,%d) was never mapped for %p\n", __func__,
+					domain_num, partition_num, buffer);
+
 		mutex_unlock(&buffer->lock);
 		mutex_unlock(&client->lock);
 		return -EINVAL;
