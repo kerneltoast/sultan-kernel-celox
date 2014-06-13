@@ -4092,7 +4092,7 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_RAM_CONSOLE_BASE    0x77800000
 #define MSM_RAM_CONSOLE_SIZE    SZ_1M
 
-#define MSM_ION_SF_SIZE		0x3000000
+#define MSM_ION_SF_SIZE		0x4000000
 #define MSM_ION_CAMERA_SIZE	0x1000000
 #define MSM_ION_MM_FW_SIZE	0x200000
 #define MSM_ION_MM_SIZE		0x3D00000
