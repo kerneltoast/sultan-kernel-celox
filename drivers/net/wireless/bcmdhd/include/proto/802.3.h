@@ -19,30 +19,34 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * Fundamental types and constants relating to 802.1D
+ * Fundamental constants relating to 802.3
  *
- * $Id: 802.1d.h 382882 2013-02-04 23:24:31Z $
+ * $Id: 802.3.h 417942 2013-08-13 07:53:57Z $
  */
 
-#ifndef _802_1_D_
-#define _802_1_D_
+#ifndef _802_3_h_
+#define _802_3_h_
 
+/* This marks the start of a packed structure section. */
+#include <packed_section_start.h>
 
-#define	PRIO_8021D_NONE		2	
-#define	PRIO_8021D_BK		1	
-#define	PRIO_8021D_BE		0	
-#define	PRIO_8021D_EE		3	
-#define	PRIO_8021D_CL		4	
-#define	PRIO_8021D_VI		5	
-#define	PRIO_8021D_VO		6	
-#define	PRIO_8021D_NC		7	
-#define	MAXPRIO			7	
-#define NUMPRIO			(MAXPRIO + 1)
+#define SNAP_HDR_LEN	6	/* 802.3 SNAP header length */
+#define DOT3_OUI_LEN	3	/* 802.3 oui length */
 
-#define ALLPRIO		-1	
+BWL_PRE_PACKED_STRUCT struct dot3_mac_llc_snap_header {
+	uint8	ether_dhost[ETHER_ADDR_LEN];	/* dest mac */
+	uint8	ether_shost[ETHER_ADDR_LEN];	/* src mac */
+	uint16	length;				/* frame length incl header */
+	uint8	dsap;				/* always 0xAA */
+	uint8	ssap;				/* always 0xAA */
+	uint8	ctl;				/* always 0x03 */
+	uint8	oui[DOT3_OUI_LEN];		/* RFC1042: 0x00 0x00 0x00
+						 * Bridge-Tunnel: 0x00 0x00 0xF8
+						 */
+	uint16	type;				/* ethertype */
+} BWL_POST_PACKED_STRUCT;
 
+/* This marks the end of a packed structure section. */
+#include <packed_section_end.h>
 
-#define PRIO2PREC(prio) \
-	(((prio) == PRIO_8021D_NONE || (prio) == PRIO_8021D_BE) ? ((prio^2)) : (prio))
-
-#endif 
+#endif	/* #ifndef _802_3_h_ */

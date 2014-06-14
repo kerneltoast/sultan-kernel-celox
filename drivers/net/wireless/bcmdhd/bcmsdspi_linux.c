@@ -1,7 +1,7 @@
 /*
  * Broadcom SPI Host Controller Driver - Linux Per-port
  *
- * Copyright (C) 1999-2012, Broadcom Corporation
+ * Copyright (C) 1999-2014, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdspi_linux.c 373329 2012-12-07 04:46:09Z $
+ * $Id: bcmsdspi_linux.c 373331 2012-12-07 04:46:22Z $
  */
 
 #include <typedefs.h>
@@ -223,7 +223,7 @@ spi_osinit(sdioh_info_t *sd)
 #ifndef BCMSPI_ANDROID
 	init_waitqueue_head(&sdos->intr_wait_queue);
 #endif /* !BCMSPI_ANDROID */
-return BCME_OK;
+	return BCME_OK;
 }
 
 void

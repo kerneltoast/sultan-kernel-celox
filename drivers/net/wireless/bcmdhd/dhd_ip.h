@@ -1,4 +1,8 @@
 /*
+ * Header file describing the common ip parser function.
+ *
+ * Provides type definitions and function prototypes used to parse ip packet.
+ *
  * Copyright (C) 1999-2014, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
@@ -19,30 +23,20 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * Fundamental types and constants relating to 802.1D
- *
- * $Id: 802.1d.h 382882 2013-02-04 23:24:31Z $
+ * $Id$
  */
 
-#ifndef _802_1_D_
-#define _802_1_D_
+#ifndef _dhd_ip_h_
+#define _dhd_ip_h_
 
+typedef enum pkt_frag
+{
+	DHD_PKT_FRAG_NONE = 0,
+	DHD_PKT_FRAG_FIRST,
+	DHD_PKT_FRAG_CONT,
+	DHD_PKT_FRAG_LAST
+} pkt_frag_t;
 
-#define	PRIO_8021D_NONE		2	
-#define	PRIO_8021D_BK		1	
-#define	PRIO_8021D_BE		0	
-#define	PRIO_8021D_EE		3	
-#define	PRIO_8021D_CL		4	
-#define	PRIO_8021D_VI		5	
-#define	PRIO_8021D_VO		6	
-#define	PRIO_8021D_NC		7	
-#define	MAXPRIO			7	
-#define NUMPRIO			(MAXPRIO + 1)
+extern pkt_frag_t pkt_frag_info(osl_t *osh, void *p);
 
-#define ALLPRIO		-1	
-
-
-#define PRIO2PREC(prio) \
-	(((prio) == PRIO_8021D_NONE || (prio) == PRIO_8021D_BE) ? ((prio^2)) : (prio))
-
-#endif 
+#endif /* _dhd_ip_h_ */
