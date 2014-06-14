@@ -150,19 +150,12 @@ void ieee80211_set_bitrate_flags(struct wiphy *wiphy)
 			set_mandatory_flags_band(wiphy->bands[band], band);
 }
 
-bool cfg80211_supported_cipher_suite(struct wiphy *wiphy, u32 cipher)
-{
-	int i;
-	for (i = 0; i < wiphy->n_cipher_suites; i++)
-		if (cipher == wiphy->cipher_suites[i])
-			return true;
-	return false;
-}
-
 int cfg80211_validate_key_settings(struct cfg80211_registered_device *rdev,
 				   struct key_params *params, int key_idx,
 				   bool pairwise, const u8 *mac_addr)
 {
+	int i;
+
 	if (key_idx > 5)
 		return -EINVAL;
 
@@ -206,10 +199,6 @@ int cfg80211_validate_key_settings(struct cfg80211_registered_device *rdev,
 		if (params->key_len != WLAN_KEY_LEN_AES_CMAC)
 			return -EINVAL;
 		break;
-	case WLAN_CIPHER_SUITE_SMS4:
-		if (params->key_len != WLAN_KEY_LEN_WAPI_SMS4)
-			return -EINVAL;
-		break;
 	default:
 		/*
 		 * We don't know anything about this algorithm,
@@ -236,7 +225,10 @@ int cfg80211_validate_key_settings(struct cfg80211_registered_device *rdev,
 		}
 	}
 
-	if (!cfg80211_supported_cipher_suite(&rdev->wiphy, params->cipher))
+	for (i = 0; i < rdev->wiphy.n_cipher_suites; i++)
+		if (params->cipher == rdev->wiphy.cipher_suites[i])
+			break;
+	if (i == rdev->wiphy.n_cipher_suites)
 		return -EINVAL;
 
 	return 0;
@@ -998,7 +990,7 @@ int cfg80211_can_change_interface(struct cfg80211_registered_device *rdev,
 			if (rdev->wiphy.software_iftypes & BIT(iftype))
 				continue;
 			for (j = 0; j < c->n_limits; j++) {
-				if (!(limits[j].types & BIT(iftype)))
+				if (!(limits[j].types & iftype))
 					continue;
 				if (limits[j].max < num[iftype])
 					goto cont;
@@ -1020,12 +1012,19 @@ int ieee80211_get_ratemask(struct ieee80211_supported_band *sband,
 			   u32 *mask)
 {
 	int i, j;
+
+	if (!sband)
+		return -EINVAL;
+
 	if (n_rates == 0 || n_rates > NL80211_MAX_SUPP_RATES)
 		return -EINVAL;
+
 	*mask = 0;
+
 	for (i = 0; i < n_rates; i++) {
 		int rate = (rates[i] & 0x7f) * 5;
 		bool found = false;
+
 		for (j = 0; j < sband->n_bitrates; j++) {
 			if (sband->bitrates[j].bitrate == rate) {
 				found = true;
@@ -1036,10 +1035,12 @@ int ieee80211_get_ratemask(struct ieee80211_supported_band *sband,
 		if (!found)
 			return -EINVAL;
 	}
+
 	/*
 	 * mask must have at least one bit set here since we
 	 * didn't accept a 0-length rates array nor allowed
 	 * entries in the array that didn't exist
 	 */
+
 	return 0;
 }
