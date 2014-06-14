@@ -732,7 +732,7 @@ static void ion_iommu_release(struct kref *kref)
 	kfree(map);
 }
 
-int ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
+void ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
 			int domain_num, int partition_num)
 {
 	struct ion_iommu_map *iommu_map;
@@ -746,25 +746,19 @@ int ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle,
 	iommu_map = ion_iommu_lookup(buffer, domain_num, partition_num);
 
 	if (!iommu_map) {
-		if ((domain_num == 2) && (partition_num == 2))
-			pr_err("%s: (%d,%d) was never mapped for %p\n", __func__,
-					domain_num, partition_num, buffer);
-		else
-			WARN(1, "%s: (%d,%d) was never mapped for %p\n", __func__,
-					domain_num, partition_num, buffer);
-
-		mutex_unlock(&buffer->lock);
-		mutex_unlock(&client->lock);
-		return -EINVAL;
+		WARN(1, "%s: (%d,%d) was never mapped for %p\n", __func__,
+				domain_num, partition_num, buffer);
+		goto out;
 	}
 
 	_ion_unmap(&buffer->iommu_map_cnt, &handle->iommu_map_cnt);
 	kref_put(&iommu_map->ref, ion_iommu_release);
 
+out:
 	mutex_unlock(&buffer->lock);
+
 	mutex_unlock(&client->lock);
 
-	return 0;
 }
 EXPORT_SYMBOL(ion_unmap_iommu);
 
