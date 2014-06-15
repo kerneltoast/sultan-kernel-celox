@@ -14188,30 +14188,28 @@ int lcdc_LD9040_panel_power(int enable)
 		}
 	}
 
-	if (panel_voltage != panel_voltage_after) {
-		// Do nothing if panel voltage has already been transformed
-		if (panel_voltage_after != panel_voltage) {
-			// Check if requested panel voltage is in bounds
-			if ((panel_voltage < 2500000) || (panel_voltage > 3000000)) {
-				printk("%s: %dmV is out of range\n", __func__, panel_uv);
+	// Panel-undervolt interface
+	// Do nothing if panel voltage has already been transformed
+	if (panel_voltage_after != panel_voltage) {
+		// Check if requested panel voltage is in bounds
+		if ((panel_voltage < 2500000) || (panel_voltage > 3000000)) {
+			printk("%s: %dmV is out of range\n", __func__, panel_uv);
+			printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
+			panel_voltage = panel_voltage_after;
+		} else {
+			// Check if requested panel voltage is a multiple
+			// of 25mV
+			if ((panel_voltage % 25000) != 0) {
+				printk("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
 				printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
 				panel_voltage = panel_voltage_after;
 			} else {
-				// Check if requested panel voltage is a multiple
-				// of 25mV
-				if ((panel_voltage % 25000) != 0) {
-					printk("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
-					printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
-					panel_voltage = panel_voltage_after;
-				} else {
-					ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
-					if (ret)
-						printk("%s: error setting panel voltage\n", __func__);
-					else
-						printk("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
-
+				ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
+				if (ret)
+					printk("%s: error setting panel voltage\n", __func__);
+				else
+					printk("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
 					panel_voltage_after = panel_voltage;
-				}
 			}
 		}
 
