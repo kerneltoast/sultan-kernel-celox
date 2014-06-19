@@ -2434,6 +2434,8 @@ static void sec_bat_update_info(struct sec_bat_info *info)
 	sec_bat_notify_vcell2charger(info);
 }
 
+int cable_type = 0;
+
 static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 {
 	struct power_supply *psy = power_supply_get_by_name(info->charger_name);
@@ -2478,6 +2480,24 @@ static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 		default:
 			dev_err(info->dev, "%s: Invalid func use\n", __func__);
 			return -EINVAL;
+		}
+
+		switch (info->cable_type) {
+			case CABLE_TYPE_NONE:
+				cable_type = 0;
+				break;
+			case CABLE_TYPE_USB:
+				cable_type = 1;
+				break;
+			case CABLE_TYPE_AC:
+			case CABLE_TYPE_CARDOCK:
+			case CABLE_TYPE_UARTOFF:
+			case CABLE_TYPE_UNKNOWN:
+				cable_type = 2;
+				break;
+			case CABLE_TYPE_MISC:
+				cable_type = 3;
+				break;
 		}
 
 		/* Set charging current */
