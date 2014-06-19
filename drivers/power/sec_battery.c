@@ -774,7 +774,7 @@ static int sec_bat_check_detbat(struct sec_bat_info *info)
 
 		pr_info("%s : vf adc : %d\n", __func__, adc_physical);
 
-		if (adc_physical > 500 && adc_physical < 900)
+		if (adc_physical > 500 && adc_physical < 1200)
 			value.intval = BAT_DETECTED;
 		else
 			value.intval = BAT_NOT_DETECTED;
@@ -812,7 +812,7 @@ static int sec_bat_check_detbat(struct sec_bat_info *info)
 	defined(CONFIG_USA_MODEL_SGH_T769) || \
 	defined(CONFIG_USA_MODEL_SGH_I577) || \
 	defined(CONFIG_CAN_MODEL_SGH_I577R)
-	if (adc_physical > 500 && adc_physical < 900)
+	if (adc_physical > 500 && adc_physical < 1200)
 #elif defined(CONFIG_USA_MODEL_SGH_I717)
 	if ((get_hw_rev() == 0x01) &&
 		(adc_physical > 1290 && adc_physical < 1800))
@@ -2463,8 +2463,8 @@ static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 		case CABLE_TYPE_UARTOFF:
 		case CABLE_TYPE_UNKNOWN:
 			val_type.intval = POWER_SUPPLY_STATUS_CHARGING;
-			 /* input : 900mA, output : 900mA */
-			val_chg_current.intval = 900;
+			 /* input : 1200mA, output : 1200mA */
+			val_chg_current.intval = 1200;
 			info->full_cond_count = FULL_CHG_COND_COUNT;
 			info->full_cond_voltage = FULL_CHARGE_COND_VOLTAGE;
 			break;
@@ -3118,12 +3118,12 @@ static void sec_bat_measure_work(struct work_struct *work)
 							info, 1000);
 					}
 				} else {
-					if (set_chg_current != 900) {
+					if (set_chg_current != 1200) {
 						pr_info("[SC-03D] %s : "
 							"adjust current to"
 							" 0.9A\n", __func__);
 						sec_bat_adjust_charging_current(
-							info, 900);
+							info, 1200);
 					}
 				}
 			} else {
@@ -3158,11 +3158,11 @@ static void sec_bat_measure_work(struct work_struct *work)
 						info, 1000);
 				}
 			} else {
-				if (set_chg_current != 900) {
+				if (set_chg_current != 1200) {
 					pr_info("%s : adjust curretn to 0.9A\n",
 						__func__);
 					sec_bat_adjust_charging_current(
-						info, 900);
+						info, 1200);
 				}
 			}
 		} else {

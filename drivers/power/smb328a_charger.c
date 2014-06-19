@@ -274,11 +274,7 @@ static void smb328a_charger_function_conrol(struct i2c_client *client)
 		dev_info(&client->dev, "%s : reg (0x%x) = 0x%x\n",
 			__func__, reg, data);
 		if (chip->chg_mode == CHG_MODE_AC) {
-#if defined(CONFIG_USA_MODEL_SGH_I717)
-			set_data = 0xB7; /* fast 1A */
-#else
-			set_data = 0x97; /* fast 900mA */
-#endif
+			set_data = 0xff; /* fast 1200mA+ */
 		} else if (chip->chg_mode == CHG_MODE_MISC) {
 			set_data = 0x57; /* fast 700mA */
 		} else
@@ -305,7 +301,7 @@ static void smb328a_charger_function_conrol(struct i2c_client *client)
 		dev_info(&client->dev, "%s : reg (0x%x) = 0x%x\n",
 			__func__, reg, data);
 		if (chip->chg_mode == CHG_MODE_AC)
-			set_data = 0xb0; /* input 1A */
+			set_data = 0xf8; /* input 1200mA+ */
 		else if (chip->chg_mode == CHG_MODE_MISC)
 			set_data = 0x50; /* input 700mA */
 		else
@@ -806,7 +802,7 @@ static int smb328a_set_charging_current(struct i2c_client *client,
 
 	if (chg_current == 500) {
 		chip->chg_mode = CHG_MODE_USB;
-	} else if (chg_current == 900) {
+	} else if (chg_current == 1200) {
 		chip->chg_mode = CHG_MODE_AC;
 	} else if (chg_current == 700) {
 		chip->chg_mode = CHG_MODE_MISC;
