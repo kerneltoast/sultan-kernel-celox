@@ -2461,6 +2461,7 @@ static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 		case CABLE_TYPE_AC:
 		case CABLE_TYPE_CARDOCK:
 		case CABLE_TYPE_UARTOFF:
+		case CABLE_TYPE_UNKNOWN:
 			val_type.intval = POWER_SUPPLY_STATUS_CHARGING;
 			 /* input : 900mA, output : 900mA */
 			val_chg_current.intval = 900;
@@ -2473,13 +2474,6 @@ static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 			val_chg_current.intval = 700;
 			info->full_cond_count = FULL_CHG_COND_COUNT;
 			info->full_cond_voltage = FULL_CHARGE_COND_VOLTAGE;
-			break;
-		case CABLE_TYPE_UNKNOWN:
-			val_type.intval = POWER_SUPPLY_STATUS_CHARGING;
-			 /* input : 450, output : 500mA */
-			val_chg_current.intval = 450;
-			info->full_cond_count = USB_FULL_COND_COUNT;
-			info->full_cond_voltage = USB_FULL_COND_VOLTAGE;
 			break;
 		default:
 			dev_err(info->dev, "%s: Invalid func use\n", __func__);
@@ -2691,9 +2685,6 @@ static void sec_bat_cable_work(struct work_struct *work)
 				   __func__);
 #endif
 	case CABLE_TYPE_UNKNOWN:
-#if defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_MXT768E)
-		tsp_set_unknown_charging_cable(true);
-#endif
 	case CABLE_TYPE_USB:
 	case CABLE_TYPE_AC:
 		/* TODO : check DCIN state again*/
