@@ -73,8 +73,7 @@ on boot
     #camera
     chown system camera /sys/class/ledflash/sec_ledflash/torch
 
-# ko files for vibrator (block this cmd temporary. vibrato driver cause reset during boot)
-    insmod /system/lib/modules/vibrator.ko
+# vibrator (block this cmd temporary. vibrato driver cause reset during boot)
     chown system system /sys/class/timed_output/vibrator/enable
     chmod 0664 /sys/class/timed_output/vibrator/enable    
 
