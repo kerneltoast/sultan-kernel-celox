@@ -2457,7 +2457,7 @@ static int sec_bat_enable_charging(struct sec_bat_info *info, bool enable)
 		case CABLE_TYPE_USB:
 			val_type.intval = POWER_SUPPLY_STATUS_CHARGING;
 			val_chg_current.intval = 1200; /* USB 1200 mode */
-			info->full_cond_count = USB_FULL_COND_COUNT;
+			info->full_cond_count = FULL_CHG_COND_COUNT;
 			info->full_cond_voltage = USB_FULL_COND_VOLTAGE;
 			break;
 		case CABLE_TYPE_AC:
