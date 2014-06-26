@@ -514,7 +514,6 @@ struct sec_bat_info {
 	struct power_supply psy_usb;
 	struct power_supply psy_ac;
 
-	struct wake_lock vbus_wake_lock;
 	struct wake_lock monitor_wake_lock;
 	struct wake_lock cable_wake_lock;
 	struct wake_lock test_wake_lock;
@@ -2651,7 +2650,6 @@ static void sec_bat_cable_work(struct work_struct *work)
 			pr_info("cable none : vdcin ok, skip!!!\n");
 			return;
 		}
-		wake_lock_timeout(&info->vbus_wake_lock, 5 * HZ);
 		cancel_delayed_work(&info->measure_work);
 		info->batt_full_status = BATT_NOT_FULL;
 		info->recharging_status = false;
@@ -2686,7 +2684,6 @@ static void sec_bat_cable_work(struct work_struct *work)
 #else
 		if (!info->dcin_intr_triggered && !info->lpm_chg_mode) {
 #endif
-			wake_lock_timeout(&info->vbus_wake_lock, 5 * HZ);
 			pr_info("%s : dock inserted, "
 				"but dcin nok skip charging!\n", __func__);
 			sec_bat_enable_charging(info, true);
@@ -2708,7 +2705,6 @@ static void sec_bat_cable_work(struct work_struct *work)
 	case CABLE_TYPE_USB:
 	case CABLE_TYPE_AC:
 		/* TODO : check DCIN state again*/
-		wake_lock(&info->vbus_wake_lock);
 		cancel_delayed_work(&info->measure_work);
 		info->charging_status = POWER_SUPPLY_STATUS_CHARGING;
 #ifdef ADJUST_RCOMP_WITH_CHARGING_STATUS
@@ -4076,8 +4072,6 @@ static __devinit int sec_bat_probe(struct platform_device *pdev)
 	info->psy_ac.num_properties = ARRAY_SIZE(sec_power_props),
 	info->psy_ac.get_property = sec_ac_get_property;
 
-	wake_lock_init(&info->vbus_wake_lock, WAKE_LOCK_SUSPEND,
-		       "vbus_present");
 	wake_lock_init(&info->monitor_wake_lock, WAKE_LOCK_SUSPEND,
 		       "sec-battery-monitor");
 	wake_lock_init(&info->cable_wake_lock, WAKE_LOCK_SUSPEND,
@@ -4304,7 +4298,6 @@ err_adc_open_1:
 	adc_channel_close(info->batt_adc_chan[0].adc_handle);
 err_adc_open_0:
 #endif
-	wake_lock_destroy(&info->vbus_wake_lock);
 	wake_lock_destroy(&info->monitor_wake_lock);
 	wake_lock_destroy(&info->cable_wake_lock);
 	wake_lock_destroy(&info->test_wake_lock);
@@ -4352,7 +4345,6 @@ static int __devexit sec_bat_remove(struct platform_device *pdev)
 	adc_channel_close(info->batt_adc_chan[0].adc_handle);
 #endif
 
-	wake_lock_destroy(&info->vbus_wake_lock);
 	wake_lock_destroy(&info->monitor_wake_lock);
 	wake_lock_destroy(&info->cable_wake_lock);
 	wake_lock_destroy(&info->test_wake_lock);
