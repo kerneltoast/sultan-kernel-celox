@@ -654,7 +654,8 @@ static int m5mo_set_jpeg_quality(unsigned int jpeg_quality)
 	
 //	if(m5mo_ctrl->settings.jpeg_quality == jpeg_quality)
 //		return 0;
-	
+
+#if 0
 	switch(jpeg_quality) {
 	case M5MO_JPEG_ECONOMY:
 		ratio = 0x0F;
@@ -670,6 +671,10 @@ static int m5mo_set_jpeg_quality(unsigned int jpeg_quality)
 		ratio = 0x00;
 		break;
 	}
+#endif
+
+	ratio = 0x00;
+	jpeg_quality = M5MO_JPEG_SUPERFINE;
 
 	err = m5mo_writeb(M5MO_CATEGORY_CAPPARM, M5MO_CAPPARM_JPEG_RATIO, 0x62);
 	CHECK_ERR(err);
