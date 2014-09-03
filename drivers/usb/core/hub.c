@@ -28,7 +28,6 @@
 #ifdef CONFIG_USB_HOST_NOTIFY
 #include <linux/host_notify.h>
 #include <linux/usb/otg.h>
-//#include <linux/usb/msm_hsusb.h>
 #endif
 
 #include <asm/uaccess.h>

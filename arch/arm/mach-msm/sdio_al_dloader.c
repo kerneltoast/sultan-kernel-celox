@@ -573,7 +573,7 @@ static int sdio_dld_debug_init(void)
 
 	sdio_dld_debug.sdio_al_dloader = debugfs_create_file(
 					"sdio_al_dloader_info",
-					S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_dld_debug.sdio_dld_debug_root,
 					NULL,
 					&sdio_dld_debug_info_ops);

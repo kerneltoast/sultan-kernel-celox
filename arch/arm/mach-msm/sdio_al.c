@@ -189,7 +189,7 @@
 /* The index of the SDIO card used for the sdio_al_dloader */
 #define SDIO_BOOTLOADER_CARD_INDEX 1
 
-#define SDIO_AL_FD	1 // fast dormacy for data channel.
+#define SDIO_AL_FD 1 // fast dormacy for data channel.
 
 /* SDIO card state machine */
 enum sdio_al_device_state {
@@ -353,10 +353,9 @@ struct sdio_al {
 	void *subsys_notif_handle;
 	int sdioc_major;
 	int skip_print_info;
-#ifdef SDIO_AL_FD	
+#ifdef SDIO_AL_FD
 	unsigned int wakelock_time;
 #endif
-	
 };
 
 struct sdio_al_work {
@@ -570,25 +569,25 @@ static int sdio_al_debugfs_init(void)
 		return -ENOENT;
 
 	sdio_al->debug.sdio_al_debug_lpm_on = debugfs_create_u8("debug_lpm_on",
-					S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_al->debug.sdio_al_debug_root,
 					&sdio_al->debug.debug_lpm_on);
 
 	sdio_al->debug.sdio_al_debug_data_on = debugfs_create_u8(
 					"debug_data_on",
-					S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_al->debug.sdio_al_debug_root,
 					&sdio_al->debug.debug_data_on);
 
 	sdio_al->debug.sdio_al_debug_close_on = debugfs_create_u8(
 					"debug_close_on",
-					S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_al->debug.sdio_al_debug_root,
 					&sdio_al->debug.debug_close_on);
 
 	sdio_al->debug.sdio_al_debug_info = debugfs_create_file(
 					"sdio_debug_info",
-					S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_al->debug.sdio_al_debug_root,
 					NULL,
 					&debug_info_ops);
@@ -599,14 +598,14 @@ static int sdio_al_debugfs_init(void)
 		scnprintf(temp, 18, "sdio_al_log_dev_%d", i + 1);
 		sdio_al->debug.sdio_al_debug_log_buffers[i] =
 			debugfs_create_blob(temp,
-			S_IRUGO | S_IWUSR |S_IWGRP,
+					S_IRUGO | S_IWUGO,
 					sdio_al->debug.sdio_al_debug_root,
 					&sdio_al_dbgfs_log[i]);
 	}
 
 	sdio_al->debug.sdio_al_debug_log_buffers[MAX_NUM_OF_SDIO_DEVICES] =
 			debugfs_create_blob("sdio_al_gen_log",
-		S_IRUGO | S_IWUSR |S_IWGRP,
+				S_IRUGO | S_IWUGO,
 				sdio_al->debug.sdio_al_debug_root,
 				&sdio_al_dbgfs_log[MAX_NUM_OF_SDIO_DEVICES]);
 
@@ -898,7 +897,6 @@ static void sdio_al_vote_for_sleep(struct sdio_al_device *sdio_al_dev,
 		if((sdio_al->wakelock_time) && (sdio_al_dev->card->host->index == 1))
 			wake_lock_timeout(&sdio_al_dev->wake_lock, (sdio_al->wakelock_time)*HZ);
 #endif
-
 	} else {
 		pr_debug(MODULE_NAME ": %s - sdio vote against sleep",
 			  __func__);

@@ -826,7 +826,7 @@ struct input_keymap_entry {
 #define SW_HPHL_OVERCURRENT	0x0d  /* set = over current on left hph */
 #define SW_HPHR_OVERCURRENT	0x0e  /* set = over current on right hph */
 #define SW_PEN_INSERT	0x0f    /* set = pen out */
-#define SW_MAX			0x10
+#define SW_MAX			0x0f
 #define SW_CNT			(SW_MAX+1)
 
 /*

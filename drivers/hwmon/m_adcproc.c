@@ -72,6 +72,7 @@ static const struct adc_map_pt adcmap_sec_settherm[] = {
 	{180,	-150},
 	{165,	-200}
 };
+
 static const struct adc_map_pt adcmap_ntcg104ef104fb[] = {
 	{696483,	-40960},
 	{649148,	-39936},
@@ -487,6 +488,7 @@ int32_t scale_xtern_chgr_cur(int32_t adc_code,
 
 	return 0;
 }
+
 int32_t scale_sec_settherm(int32_t adc_code,
 		const struct adc_properties *adc_properties,
 		const struct chan_properties *chan_properties,

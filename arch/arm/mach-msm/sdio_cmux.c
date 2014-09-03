@@ -306,8 +306,6 @@ int sdio_cmux_open(const int id,
 	logical_ch[id].receive_cb = receive_cb;
 	logical_ch[id].write_done = write_done;
 	logical_ch[id].status_callback = status_callback;
-	smp_mb();
-
 	if (logical_ch[id].receive_cb) {
 		mutex_lock(&temp_rx_lock);
 		list_for_each_entry_safe(list_elem, list_elem_tmp,

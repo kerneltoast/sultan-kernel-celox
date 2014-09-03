@@ -102,17 +102,17 @@ config TOUCHSCREEN_AD7879_SPI
 	  To compile this driver as a module, choose M here: the
 	  module will be called ad7879-spi.
 
-config TOUCHSCREEN_ATMEL_MAXTOUCH
-       tristate "Atmel maXTouch based touchscreens"
+config TOUCHSCREEN_ATMEL_MXT
+	tristate "Atmel mXT I2C Touchscreen"
 	depends on I2C
-       default n
 	help
-         Say Y here if you have an Atmel Maxtouch based touchscreen.
+	  Say Y here if you have Atmel mXT series I2C touchscreen,
+	  such as AT42QT602240/ATMXT224, connected to your system.
 
 	  If unsure, say N.
 
 	  To compile this driver as a module, choose M here: the
-         module will be called maXTouch.
+	  module will be called atmel_mxt_ts.
 
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
@@ -253,19 +253,6 @@ config TOUCHSCREEN_WACOM_W8001
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called wacom_w8001.
-
-config EPEN_WACOM_G5SP
-	tristate "Wacom G5SP penabled i2c touchscreen"
-	depends on SERIO
-	help
-	  Say Y here if you have an Wacom G5SP penabled i2c touchscreen
-	  connected to your system.
-
-	  If unsure, say N.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called wacom_G5SP.
-
 
 config TOUCHSCREEN_LPC32XX
 	tristate "LPC32XX touchscreen controller"
@@ -852,31 +839,4 @@ config TOUCHSCREEN_CYTTSP_I2C
 
          To compile this driver as a module, choose M here: the
          module will be called cyttsp-i2c.
-         
-config TOUCHSCREEN_MELFAS
-	tristate "MELFAS touchscreen driver"
-	depends on I2C
-	help	  
-   	  Say Y here if you have a MELFAS touchscreen.
-   	  
-   	  If unsure, say N.
-
-
-config EPEN_WACOM_G5SP
-	tristate "WACOM I2C Touchscreen"
-	depends on I2C
-	help
-	  Say Y here if you have the WACOM touchscreen
-	  connected to your system.
-
-	  If unsure, say N.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called Wacom_w8001.
-
-config SHAPE_TOUCH
-	bool "shape touch feature for Atmel TSP drivers"
-	default n
-	depends on TOUCHSCREEN_ATMEL_MXT540E
-	
 endif

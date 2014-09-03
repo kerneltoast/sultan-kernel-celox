@@ -16,7 +16,6 @@
 #define _KREF_H_
 
 #include <linux/types.h>
-#include <linux/atomic.h>
 
 struct kref {
 	atomic_t refcount;
@@ -27,10 +26,5 @@ void kref_get(struct kref *kref);
 int kref_put(struct kref *kref, void (*release) (struct kref *kref));
 int kref_sub(struct kref *kref, unsigned int count,
 	     void (*release) (struct kref *kref));
-
-static inline int __must_check kref_get_unless_zero(struct kref *kref)
-{
-	return atomic_add_unless(&kref->refcount, 1, 0);
-}
 
 #endif /* _KREF_H_ */

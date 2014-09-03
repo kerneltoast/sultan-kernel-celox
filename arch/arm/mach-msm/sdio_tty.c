@@ -663,7 +663,7 @@ static int sdio_tty_probe(struct platform_device *pdev)
 	int debug_msg_on = 0;
 	int ret = 0;
 	enum sdio_tty_devices device_id = 0;
-	
+
 #if 0
 	const struct platform_device_id *id = platform_get_device_id(pdev);
 	enum sdio_tty_devices device_id = id->driver_data;
@@ -820,7 +820,7 @@ static int __init sdio_tty_init(void)
 		if (sdio_tty_debug_root) {
 			sdio_tty_debug_info = debugfs_create_file(
 							"sdio_tty_debug",
-							S_IRUGO | S_IWUSR | S_IWGRP,
+							S_IRUGO | S_IWUGO,
 							sdio_tty_debug_root,
 							NULL,
 							&tty_debug_info_ops);
