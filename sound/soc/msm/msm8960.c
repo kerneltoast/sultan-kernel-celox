@@ -26,6 +26,7 @@
 #include <asm/mach-types.h>
 #include <mach/socinfo.h>
 #include <linux/mfd/wcd9310/core.h>
+#include <linux/input.h>
 #include "msm-pcm-routing.h"
 #include "../codecs/wcd9310.h"
 
@@ -681,7 +682,7 @@ static void *def_tabla_mbhc_cal(void)
 
 static int msm8960_audrx_init(struct snd_soc_pcm_runtime *rtd)
 {
-	int err;
+	int err, ret;
 	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 	struct pm_gpio jack_gpio_cfg = {
@@ -738,6 +739,14 @@ static int msm8960_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	if (hs_detect_use_gpio) {
 		mbhc_cfg.gpio = PM8921_GPIO_PM_TO_SYS(JACK_DETECT_GPIO);
 		mbhc_cfg.gpio_irq = JACK_DETECT_INT;
+	}
+
+	ret = snd_jack_set_key(button_jack.jack,
+			       SND_JACK_BTN_0,
+			       KEY_MEDIA);
+	if (ret) {
+		pr_err("%s: Failed to set code for btn-0\n", __func__);
+		return ret;
 	}
 
 	if (mbhc_cfg.gpio) {
@@ -1124,6 +1133,15 @@ static struct snd_soc_dai_link msm8960_dai_common[] = {
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_INT_BT_SCO_TX,
 		.be_hw_params_fixup = msm8960_btsco_be_hw_params_fixup,
+	},
+	{
+		.name = "MSM8960 LowLatency",
+		.stream_name = "MultiMedia5",
+		.cpu_dai_name	= "MultiMedia5",
+		.platform_name  = "msm-lowlatency-pcm-dsp",
+		.dynamic = 1,
+		.dsp_link = &fe_media,
+		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA5,
 	},
 	{
 		.name = LPASS_BE_INT_FM_RX,

@@ -451,7 +451,6 @@ static int pcm_out_release(struct inode *inode, struct file *file)
 				__func__, pcm->ac->session);
 	if (pcm->ac)
 		pcm_out_disable(pcm);
-
 	msm_clear_session_id(pcm->ac->session);
 	auddev_unregister_evt_listner(AUDDEV_CLNT_DEC, pcm->ac->session);
 	q6asm_audio_client_free(pcm->ac);
