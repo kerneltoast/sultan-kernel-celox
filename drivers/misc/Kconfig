@@ -676,10 +676,11 @@ menuconfig VIBETONZ
         default m
         help
           Say Y to enable Vibetonz support.
+
 config STMPE811_ADC
 	bool "stmpe811 adc driver"
 	default n
 	help
 	  stmpe811 adc driver
-          
+
 endif # MISC_DEVICES

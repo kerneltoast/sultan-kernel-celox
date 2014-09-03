@@ -78,8 +78,7 @@
  */
 
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
-#  define CSY_SAMSUNG_FIX_IAD_INTERFACE_NUMBER
-
+#define CSY_SAMSUNG_FIX_IAD_INTERFACE_NUMBER
 #endif
 struct rndis_ep_descs {
 	struct usb_endpoint_descriptor	*in;
@@ -137,17 +136,9 @@ static struct usb_interface_descriptor rndis_control_intf = {
 	/* .bInterfaceNumber = DYNAMIC */
 	/* status endpoint is optional; this could be patched later */
 	.bNumEndpoints =	1,
-#if (defined(CONFIG_USB_ANDROID_RNDIS_WCEIS) || \
-		defined(CONFIG_USB_MAEMO_RNDIS_WCEIS)) && !defined(CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE)
-	/* "Wireless" RNDIS; auto-detected by Windows */
-	.bInterfaceClass =	USB_CLASS_WIRELESS_CONTROLLER,
-	.bInterfaceSubClass = 1,
-	.bInterfaceProtocol =	3,
-#else
 	.bInterfaceClass =	USB_CLASS_COMM,
 	.bInterfaceSubClass =   USB_CDC_SUBCLASS_ACM,
 	.bInterfaceProtocol =   USB_CDC_ACM_PROTO_VENDOR,
-#endif
 	/* .iInterface = DYNAMIC */
 };
 
@@ -434,7 +425,6 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 		w_index = rndis->ctrl_id;
 #endif
 
-
 	/* composite driver infrastructure handles everything except
 	 * CDC class messages; interface activation uses set_alt().
 	 */
@@ -631,11 +621,10 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	if (status < 0)
 		goto fail;
 	rndis->ctrl_id = status;
-#  ifdef CSY_SAMSUNG_FIX_IAD_INTERFACE_NUMBER
-		/* Nothing to do */
-#  else
+
+#ifndef CSY_SAMSUNG_FIX_IAD_INTERFACE_NUMBER
 	rndis_iad_descriptor.bFirstInterface = status;
-#  endif
+#endif
 
 	rndis_control_intf.bInterfaceNumber = status;
 	rndis_union_desc.bMasterInterface0 = status;

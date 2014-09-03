@@ -75,11 +75,7 @@
 #endif
 #include "f_adb.c"
 #include "f_ccid.c"
-#ifdef CONFIG_USB_ANDROID_SAMSUNG_MTP
-#include "f_mtp_samsung.c"
-#else
 #include "f_mtp.c"
-#endif
 #include "f_accessory.c"
 #define USB_ETH_RNDIS y
 #include "f_rndis.c"
@@ -208,9 +204,6 @@ static void android_work(struct work_struct *data)
 	char **uevent_envp = NULL;
 	unsigned long flags;
 
-	printk(KERN_DEBUG "usb: %s config=%p,connected=%d,sw_connected=%d\n",
-			__func__, cdev->config, dev->connected,
-			dev->sw_connected);
 	spin_lock_irqsave(&cdev->lock, flags);
         if (cdev->config)
 		uevent_envp = configured;
@@ -555,77 +548,7 @@ static struct android_usb_function diag_function = {
 	.attributes	= diag_function_attributes,
 };
 
-#ifdef CONFIG_USB_USE_ACM
-
-/* ACM */
-static char acm_transports[32];	/*enabled ACM ports - "tty[,sdio]"*/
-static ssize_t acm_transports_store(
-	struct device *device, struct device_attribute *attr,
-	const char *buff, size_t size)
-{
-	strlcpy(acm_transports, buff, sizeof(acm_transports));
-	return size;
-}
-
-static DEVICE_ATTR(acm_transports, S_IWUSR, NULL, acm_transports_store);
-static struct device_attribute *acm_function_attributes[] = {
-			&dev_attr_acm_transports, NULL };
-			
-static void acm_function_cleanup(struct android_usb_function *f)
-{
-	gserial_cleanup();
-}
-				
-static int acm_function_bind_config(struct android_usb_function *f,
-					struct usb_configuration *c)
-{
-	char *name;
-	char buf[32], *b;
-	int err = -1, i;
-	static int acm_initialized, ports;
-
-	if (acm_initialized)
-		goto bind_config;
-
-	acm_initialized = 1;
-	strlcpy(buf, acm_transports, sizeof(buf));
-	b = strim(buf);
-	while (b) {
-		name = strsep(&b, ",");
-		if (name) {
-			err = acm_init_port(ports, name);
-			if (err) {
-				pr_err("acm: Cannot open port '%s'", name);
-				goto out;
-			}
-			ports++;
-		}
-	}
-	err = acm_port_setup(c);
-	if (err) {
-		pr_err("acm: Cannot setup transports");
-		goto out;
-	}
-bind_config:
-	for (i = 0; i < ports; i++) {
-		err = acm_bind_config(c, i);
-		if (err) {
-			pr_err("acm: bind_config failed for port %d", i);
-			goto out;
-		}
-	}
-
-out:
-	return err;
-}
-static struct android_usb_function acm_function = {
-	.name		= "acm",
-	.cleanup	= acm_function_cleanup,
-	.bind_config	= acm_function_bind_config,
-	.attributes	= acm_function_attributes,
-};
-
-#else
+#ifndef CONFIG_USB_USE_ACM
 /* SERIAL */
 static char serial_transports[32];	/*enabled FSERIAL ports - "tty[,sdio]"*/
 static ssize_t serial_transports_store(
@@ -699,6 +622,78 @@ static struct android_usb_function serial_function = {
 	.attributes	= serial_function_attributes,
 };
 #endif
+
+/* ACM */
+static char acm_transports[32];	/*enabled ACM ports - "tty[,sdio]"*/
+static ssize_t acm_transports_store(
+		struct device *device, struct device_attribute *attr,
+		const char *buff, size_t size)
+{
+	strlcpy(acm_transports, buff, sizeof(acm_transports));
+
+	return size;
+}
+
+static DEVICE_ATTR(acm_transports, S_IWUSR, NULL, acm_transports_store);
+static struct device_attribute *acm_function_attributes[] = {
+		&dev_attr_acm_transports, NULL };
+
+static void acm_function_cleanup(struct android_usb_function *f)
+{
+	gserial_cleanup();
+}
+
+static int acm_function_bind_config(struct android_usb_function *f,
+					struct usb_configuration *c)
+{
+	char *name;
+	char buf[32], *b;
+	int err = -1, i;
+	static int acm_initialized, ports;
+
+	if (acm_initialized)
+		goto bind_config;
+
+	acm_initialized = 1;
+	strlcpy(buf, acm_transports, sizeof(buf));
+	b = strim(buf);
+
+	while (b) {
+		name = strsep(&b, ",");
+
+		if (name) {
+			err = acm_init_port(ports, name);
+			if (err) {
+				pr_err("acm: Cannot open port '%s'", name);
+				goto out;
+			}
+			ports++;
+		}
+	}
+	err = acm_port_setup(c);
+	if (err) {
+		pr_err("acm: Cannot setup transports");
+		goto out;
+	}
+
+bind_config:
+	for (i = 0; i < ports; i++) {
+		err = acm_bind_config(c, i);
+		if (err) {
+			pr_err("acm: bind_config failed for port %d", i);
+			goto out;
+		}
+	}
+
+out:
+	return err;
+}
+static struct android_usb_function acm_function = {
+	.name		= "acm",
+	.cleanup	= acm_function_cleanup,
+	.bind_config	= acm_function_bind_config,
+	.attributes	= acm_function_attributes,
+};
 
 /* CCID */
 static int ccid_function_init(struct android_usb_function *f,
@@ -1234,13 +1229,12 @@ static struct android_usb_function *supported_functions[] = {
 	&rmnet_smd_sdio_function,
 	&rmnet_function,
 	&diag_function,
-	&adb_function,
-	&ccid_function,
-#ifdef CONFIG_USB_USE_ACM
-	&acm_function,
-#else
+#ifndef CONFIG_USB_USE_ACM
 	&serial_function,
 #endif
+	&adb_function,
+	&ccid_function,
+	&acm_function,
 	&mtp_function,
 	&ptp_function,
 	&rndis_function,

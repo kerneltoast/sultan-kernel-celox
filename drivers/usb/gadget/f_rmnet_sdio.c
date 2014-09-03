@@ -148,7 +148,7 @@ static struct usb_interface_descriptor rmnet_sdio_interface_desc = {
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 	.bInterfaceSubClass = 0xE0,
 	.bInterfaceProtocol = 0x00,
-#else	
+#else
 	.bInterfaceSubClass =   USB_CLASS_VENDOR_SPEC,
 	.bInterfaceProtocol =   USB_CLASS_VENDOR_SPEC,
 #endif

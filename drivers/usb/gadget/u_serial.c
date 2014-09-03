@@ -1312,8 +1312,10 @@ static void usb_debugfs_init(struct gs_port *ui_dev, int port_num)
 		return;
 
 	debugfs_create_file("readstatus", 0444, dent, ui_dev, &debug_adb_ops);
-	debugfs_create_file("reset", 0664, dent, ui_dev, &debug_rst_ops);
+	debugfs_create_file("reset", S_IRUGO | S_IWUSR, dent, ui_dev, &debug_rst_ops);
 }
+#else
+static void usb_debugfs_init(struct gs_port *ui_dev, int port_num) {}
 #endif
 
 /**
@@ -1411,10 +1413,8 @@ int gserial_setup(struct usb_gadget *g, unsigned count)
 				__func__, i, PTR_ERR(tty_dev));
 	}
 
-#ifdef CONFIG_DEBUG_FS
 	for (i = 0; i < count; i++)
 		usb_debugfs_init(ports[i].port, i);
-#endif
 
 	pr_debug("%s: registered %d ttyGS* device%s\n", __func__,
 			count, (count == 1) ? "" : "s");
