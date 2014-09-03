@@ -212,7 +212,7 @@ enum msm_tlmm_spkr_pull_tgt {
 	CODEC_SPKR_WS_PULL,
 };
 #endif
-	
+
 #ifdef CONFIG_MSM_V2_TLMM
 void msm_tlmm_set_hdrive(enum msm_tlmm_hdrive_tgt tgt, int drv_str);
 void msm_tlmm_set_pull(enum msm_tlmm_pull_tgt tgt, int pull);

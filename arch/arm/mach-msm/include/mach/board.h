@@ -204,16 +204,16 @@ struct msm_camera_gpio_conf {
 
 struct msm_camera_sensor_platform_info {
 	int mount_angle;
-	int sensor_reset_enable;	
+	int sensor_reset_enable;
 	int sensor_reset;
 	int sensor_pwd;
 	int vcm_pwd;
-	int vcm_enable;	
+	int vcm_enable;
 	struct camera_vreg_t *cam_vreg;
 	int num_vreg;
 	int32_t (*ext_power_ctrl) (int enable);
 	struct msm_camera_gpio_conf *gpio_conf;
-	int(*sensor_power_control) (int);	
+	int(*sensor_power_control) (int);
 };
 
 struct msm_actuator_info {

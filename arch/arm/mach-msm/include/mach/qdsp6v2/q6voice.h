@@ -28,9 +28,6 @@
 
 #define SESSION_NAME_LEN 20
 
-#if defined(CONFIG_KOR_MODEL_SHV_E120L)|| defined(CONFIG_KOR_MODEL_SHV_E160L)
-#define CONFIG_VPCM_INTERFACE_ON_SVLTE2
-#endif
 #if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined(CONFIG_USA_MODEL_SGH_T989) || defined(CONFIG_USA_MODEL_SGH_I727) || defined(CONFIG_USA_MODEL_SGH_I757) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_JPN_MODEL_SC_03D) || defined(CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I717)
 #define CONFIG_VPCM_INTERFACE_ON_CSFB
 #endif
@@ -602,7 +599,7 @@ struct vss_ivocproc_cmd_create_full_control_session_t {
 	uint32_t vol_index;
 	/* Loopback Info */
 	int loopback_mode_onoff;
-#endif 
+#endif
 } __attribute__((packed));
 
 struct vss_ivocproc_cmd_set_device_t {
@@ -636,7 +633,7 @@ struct vss_ivocproc_cmd_set_device_t {
 	uint32_t vol_index;
 	/* Loopback Info */
 	int loopback_mode_onoff;
-#endif 
+#endif
 } __attribute__((packed));
 
 struct vss_ivocproc_cmd_set_volume_index_t {
@@ -856,8 +853,4 @@ int voice_start_record(uint32_t rec_mode, uint32_t set);
 int voice_start_playback(uint32_t set);
 
 u16 voice_get_session_id(const char *name);
-#if defined(CONFIG_EUR_MODEL_GT_I9210)
-int vpcm_stop_modem_voice(void);
-int vpcm_start_modem_voice(void);
-#endif
 #endif
