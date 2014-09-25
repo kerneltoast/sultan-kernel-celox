@@ -1351,7 +1351,9 @@ static ssize_t touch_led_control(struct device *dev, struct device_attribute *at
 	} else
 		printk("touch_led_control Error\n");
 
+#if defined(CONFIG_KOR_MODEL_SHV_E160L)
 unlock:
+#endif
 	mutex_unlock(&touchkey_driver->mutex);
 	return size;
 }
