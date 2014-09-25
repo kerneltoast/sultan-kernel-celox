@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/cpu_boost.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -99,6 +100,9 @@ static int lcdc_on(struct platform_device *pdev)
 #ifndef CONFIG_MSM_BUS_SCALING
 	unsigned long pm_qos_rate;
 #endif
+
+	cpu_boost_timeout(972, 7000);
+
 	mfd = platform_get_drvdata(pdev);
 
 	cont_splash_clk_ctrl(0);

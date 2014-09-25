@@ -6,6 +6,7 @@ CAMERA DRIVER FOR 5M CAM(FUJITSU M4Mo) by PGH
 ver 0.1 : only preview (base on universal)
 ****************************************************************/
 
+#include <linux/cpu_boost.h>
 #include <linux/delay.h>
 #include <linux/types.h>
 #include <linux/i2c.h>
@@ -2127,6 +2128,7 @@ static long m5mo_set_sensor_mode(int mode)
 
 	case SENSOR_SNAPSHOT_MODE:
 		CAM_DEBUG("SENSOR_SNAPSHOT_MODE START");
+		cpu_boost_timeout(1188, 3000);
 		m5mo_snapshot_mode();
 		break;
 
