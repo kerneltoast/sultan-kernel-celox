@@ -27,6 +27,7 @@ static unsigned int boost_freq_khz = 0;
 static unsigned int boost_override = 0;
 static unsigned int cpu_boosted = 0;
 static unsigned int init_done = 0;
+static unsigned int maxfreq_orig = 0;
 static unsigned int minfreq_orig = 0;
 
 void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms)
@@ -65,11 +66,18 @@ void cpu_unboost(void)
 		complete(&cpu_boost_no_timeout);
 }
 
-static void save_original_minfreq(void)
+static void save_original_cpu_limits(void)
 {
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 
 	minfreq_orig = policy->user_policy.min;
+	maxfreq_orig = policy->user_policy.max;
+}
+
+static void set_new_minfreq(struct cpufreq_policy *policy,
+	unsigned int minfreq)
+{
+	policy->user_policy.min = minfreq;
 }
 
 static void restore_original_minfreq(void)
@@ -80,8 +88,7 @@ static void restore_original_minfreq(void)
 	get_online_cpus();
 	for_each_online_cpu(cpu) {
 		policy = cpufreq_cpu_get(cpu);
-		cpufreq_verify_within_limits(policy, minfreq_orig, UINT_MAX);
-		policy->user_policy.min = minfreq_orig;
+		set_new_minfreq(policy, minfreq_orig);
 		cpufreq_update_policy(cpu);
 		cpufreq_cpu_put(policy);
 	}
@@ -103,17 +110,25 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	if (!boost_override)
-		save_original_minfreq();
+		save_original_cpu_limits();
 
 	if (boost_freq_khz) {
-		minfreq = boost_freq_khz;
+
+		if (boost_freq_khz >= maxfreq_orig) {
+			if (maxfreq_orig <= 486000) {
+				boost_duration_ms = 0;
+				boost_override = 0;
+				return;
+			} else
+				minfreq = maxfreq_orig - 108000;
+		} else
+			minfreq = boost_freq_khz;
 
 		/* boost online CPUs */
 		get_online_cpus();
 		for_each_online_cpu(cpu) {
 			policy = cpufreq_cpu_get(cpu);
-			cpufreq_verify_within_limits(policy, minfreq, UINT_MAX);
-			policy->user_policy.min = minfreq;
+			set_new_minfreq(policy, minfreq);
 			cpufreq_update_policy(cpu);
 			cpufreq_cpu_put(policy);
 		}
