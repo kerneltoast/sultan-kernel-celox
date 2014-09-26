@@ -371,10 +371,11 @@ static void audlpa_async_send_data(struct audio *audio, unsigned needed,
 static int audlpa_events_pending(struct audio *audio)
 {
 	int empty;
+	unsigned long flags;
 
-	spin_lock(&audio->event_queue_lock);
+	spin_lock_irqsave(&audio->event_queue_lock,flags);
 	empty = !list_empty(&audio->event_queue);
-	spin_unlock(&audio->event_queue_lock);
+	spin_unlock_irqrestore(&audio->event_queue_lock,flags);
 	return empty || audio->event_abort;
 }
 
@@ -382,8 +383,9 @@ static void audlpa_reset_event_queue(struct audio *audio)
 {
 	struct audlpa_event *drv_evt;
 	struct list_head *ptr, *next;
+	unsigned long flags;
 
-	spin_lock(&audio->event_queue_lock);
+	spin_lock_irqsave(&audio->event_queue_lock,flags);
 	list_for_each_safe(ptr, next, &audio->event_queue) {
 		drv_evt = list_first_entry(&audio->event_queue,
 			struct audlpa_event, list);
@@ -396,7 +398,7 @@ static void audlpa_reset_event_queue(struct audio *audio)
 		list_del(&drv_evt->list);
 		kfree(drv_evt);
 	}
-	spin_unlock(&audio->event_queue_lock);
+	spin_unlock_irqrestore(&audio->event_queue_lock,flags);
 
 	return;
 }
@@ -407,6 +409,7 @@ static long audlpa_process_event_req(struct audio *audio, void __user *arg)
 	struct msm_audio_event usr_evt;
 	struct audlpa_event *drv_evt = NULL;
 	int timeout;
+	unsigned long flags;
 
 	if (copy_from_user(&usr_evt, arg, sizeof(struct msm_audio_event)))
 		return -EFAULT;
@@ -434,7 +437,7 @@ static long audlpa_process_event_req(struct audio *audio, void __user *arg)
 
 	rc = 0;
 
-	spin_lock(&audio->event_queue_lock);
+	spin_lock_irqsave(&audio->event_queue_lock,flags);
 	if (!list_empty(&audio->event_queue)) {
 		drv_evt = list_first_entry(&audio->event_queue,
 			struct audlpa_event, list);
@@ -446,7 +449,7 @@ static long audlpa_process_event_req(struct audio *audio, void __user *arg)
 		list_add_tail(&drv_evt->list, &audio->free_event_queue);
 	} else
 		rc = -1;
-	spin_unlock(&audio->event_queue_lock);
+	spin_unlock_irqrestore(&audio->event_queue_lock,flags);
 
 	if (drv_evt && (drv_evt->event_type == AUDIO_EVENT_WRITE_DONE ||
 	    drv_evt->event_type == AUDIO_EVENT_READ_DONE)) {
@@ -1221,8 +1224,9 @@ static void audlpa_post_event(struct audio *audio, int type,
 	union msm_audio_event_payload payload)
 {
 	struct audlpa_event *e_node = NULL;
+	unsigned long flags;
 
-	spin_lock(&audio->event_queue_lock);
+	spin_lock_irqsave(&audio->event_queue_lock,flags);
 
 	pr_debug("%s:\n", __func__);
 	if (!list_empty(&audio->free_event_queue)) {
@@ -1233,7 +1237,7 @@ static void audlpa_post_event(struct audio *audio, int type,
 		e_node = kmalloc(sizeof(struct audlpa_event), GFP_ATOMIC);
 		if (!e_node) {
 			pr_err("%s: No mem to post event %d\n", __func__, type);
-			spin_unlock(&audio->event_queue_lock);
+			spin_unlock_irqrestore(&audio->event_queue_lock,flags);
 			return;
 		}
 	}
@@ -1242,7 +1246,7 @@ static void audlpa_post_event(struct audio *audio, int type,
 	e_node->payload = payload;
 
 	list_add_tail(&e_node->list, &audio->event_queue);
-	spin_unlock(&audio->event_queue_lock);
+	spin_unlock_irqrestore(&audio->event_queue_lock,flags);
 	wake_up(&audio->event_wait);
 }
 

@@ -2690,6 +2690,9 @@ static void sec_bat_cable_work(struct work_struct *work)
 			info->charging_enabled = false;
 			break;
 		}
+		sec_bat_enable_charging(info, true);
+		info->charging_status = POWER_SUPPLY_STATUS_CHARGING;
+		break;
 #if defined(CONFIG_TARGET_LOCALE_USA)
 	case CABLE_TYPE_UARTOFF:
 		if (!info->dcin_intr_triggered) {
@@ -2698,8 +2701,11 @@ static void sec_bat_cable_work(struct work_struct *work)
 				   __func__);
 			break;
 		} else
+		{
 			pr_info("%s : jig cable is attached with vbus\n",
 				   __func__);
+			break;
+		}
 #endif
 	case CABLE_TYPE_UNKNOWN:
 	case CABLE_TYPE_USB:
