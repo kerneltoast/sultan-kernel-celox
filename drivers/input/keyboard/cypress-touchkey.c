@@ -145,7 +145,7 @@ static u8 firm_version = 0;
 #endif
 
 #ifdef CONFIG_TOUCH_CYPRESS_SWEEP2WAKE
-int s2w_switch = 1;
+int s2w_switch = 0;
 int s2w_count = 0;
 bool scr_suspended = false, exec_count = true;
 bool scr_on_touch = false, barrier[2] = {false, false};
