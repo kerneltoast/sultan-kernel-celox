@@ -21,6 +21,7 @@
 
 #include "../../../drivers/video/msm/msm_fb.h"
 
+#include <linux/cpu_boost.h>
 #include <linux/leds.h>
 #include <linux/pmic8058-othc.h>
 #include <linux/mfd/pmic8901.h>
@@ -5337,6 +5338,8 @@ static void mxt224_power_on(void)
 	struct regulator *L1;
 	struct regulator *L4;
 	// static struct regulator *tsp_pannel_pwr_reg;
+
+	cpu_boost_timeout(972, 7000);
 
 	printk("%s: enter\n", __func__);
 	{
