@@ -26,9 +26,6 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-target="$1"
-serial="$2"
-
 # No path is set up at this point so we have to do it here.
 PATH=/sbin:/system/sbin:/system/bin:/system/xbin
 export PATH
@@ -60,27 +57,7 @@ if [ -f /system/etc/init.qcom.mdm_links.sh ]; then
   /system/bin/sh /system/etc/init.qcom.mdm_links.sh
 fi
 
-setprop ro.modem.links.done 1       
-
-# Run thermal script        
-if [ -f /system/etc/init.qcom.thermal_conf.sh ]; then       
-  /system/bin/sh /system/etc/init.qcom.thermal_conf.sh      
-fi
-
-# Run wifi script
-if [ -f /system/etc/init.qcom.wifi.sh ]; then
-  /system/bin/sh /system/etc/init.qcom.wifi.sh "$target" "$serial"
-fi
-
-# Run the sensor script
-if [ -f /system/etc/init.qcom.sensor.sh ]; then
-  /system/bin/sh /system/etc/init.qcom.sensor.sh
-fi
-
-# Run usf script
-if [ -f /system/etc/usf_settings.sh ]; then
-  /system/bin/sh /system/etc/usf_settings.sh
-fi
+setprop ro.modem.links.done 1
 
 touch /system/etc/boot_fixup
 

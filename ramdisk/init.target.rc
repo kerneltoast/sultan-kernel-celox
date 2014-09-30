@@ -32,58 +32,16 @@ on early-init
     mkdir /efs 0771 system system
 
 on fs
-    mount_all fstab.qcom
-
-    # Keeping following partitions outside fstab file. As user may not have
-    # these partition flashed on the device. Failure to mount any partition in fstab file
-    # results in failure to launch late-start class.
-    wait /dev/block/mmcblk0p26
-    mount ext4 /dev/block/mmcblk0p26 /cache nosuid nodev barrier=1
-
-on post-fs-data
     mkdir /data/tombstones 0771 system system
     mkdir /tombstones/modem 0771 system system
     mkdir /tombstones/mdm 0771 system system
     mkdir /tombstones/lpass 0771 system system
-    wait /dev/block/mmcblk0p13
-    mount vfat /dev/block/mmcblk0p13 /firmware ro shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337
-    start modem_link
 
-on boot
-    chown system system /dev/accelerometer
-    chown system system /dev/akm8975
-    chmod 664	/dev/accelerometer
-    chmod 664	/dev/akm8975
-    chown system system /sys/class/K3G_GYRO-dev/k3g/gyro_selftest_dps
-    chown system system /sys/class/sec/gsensorcal/calibration
-    chown system system /sys/class/proximity/proximity/proximity_avg
-    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_selftest
-    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_get_temp
-    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_power_on
-    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_selftest_dps
-    chown system system /sys/devices/virtual/accelerometer/accelerometer/acc_file
-    chown system system /sys/devices/virtual/sec/gsensorcal/calibration
-    chown system system /sys/class/sensors/barometer_sensor/sea_level_pressure
-    chown system system /sys/class/sensors/barometer_sensor/eeprom_check
+    mount_all fstab.qcom
 
-    #bln
-    chown system system /sys/class/misc/backlightnotification/notification_led
-    chown system system /sys/class/misc/backlightnotification/enabled
-
-    #camera
-    chown system camera /sys/class/ledflash/sec_ledflash/torch
-
-# vibrator (block this cmd temporary. vibrato driver cause reset during boot)
-    chown system system /sys/class/timed_output/vibrator/enable
-    chmod 0664 /sys/class/timed_output/vibrator/enable    
-
-# on emmc mount the partition containing firmware
 on post-fs-data
-    mount ext3 /dev/block/mmcblk0p24 /system remount rw
     mkdir /system/etc/firmware/misc 0771 system system
     mkdir /system/etc/firmware/misc_mdm 0771 system system
-    exec /system/bin/sh /system/etc/init.qcom.modem_links.sh
-    mount ext4 /dev/block/mmcblk0p24 /system remount ro barrier=0
 
     write /sys/devices/i2c-0/0-0024/cyttsp_update_fw 1
 
@@ -109,7 +67,7 @@ on post-fs-data
     mkdir /data/misc/sensors 0775 root root
     write /data/system/sensors/settings 0
     chmod 0664 /data/system/sensors/settings
-    
+
     # for parameter
     chown system radio /dev/block/mmcblk0p12
     chmod 0660 /dev/block/mmcblk0p12
@@ -157,7 +115,7 @@ on post-fs-data
     chown radio system /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_update_status
     chown radio system /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_update
     chown radio system /sys/devices/virtual/sec/sec_touchkey/touchkey_brightness
-    
+
 # Permissions for TSP
    chown radio system /sys/devices/virtual/sec/tsp_noise_test/set_firm_version
    chown radio system /sys/devices/virtual/sec/tsp_noise_test/set_threshold
@@ -231,7 +189,7 @@ on post-fs-data
     chown radio system /sys/class/power_supply/battery/batt_wifi
     chown radio system /sys/class/power_supply/battery/gps
     chown radio system /sys/class/power_supply/battery/device_state
-    
+
 # allow system to modify cpufreq control files
     chown root system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
@@ -283,7 +241,7 @@ on post-fs-data
     mkdir /system/etc/security/.drm 0775
     chown root root /system/etc/security/.drm
     chmod 0775 /system/etc/security/.drm
-    
+
     # Added for Playready DRM Support
     mkdir /data/data/.drm 0775
     chown drm system /data/data/.drm
@@ -291,7 +249,7 @@ on post-fs-data
     mkdir /data/data/.drm/.playready 0775
     chown drm system /data/data/.drm/.playready
     chmod 0775 /data/data/.drm/.playready
-    
+
     #Added drm folder to copy drm plugins
     mkdir /system/lib/drm 0775
     chown root root /system/lib/drm
@@ -332,13 +290,35 @@ on post-fs-data
     mkdir /cache/fota 0775 system cache
     chmod 0775 /cache/fota
 
+on boot
+    chown system system /dev/accelerometer
+    chown system system /dev/akm8975
+    chmod 664 /dev/accelerometer
+    chmod 664 /dev/akm8975
+    chown system system /sys/class/K3G_GYRO-dev/k3g/gyro_selftest_dps
+    chown system system /sys/class/sec/gsensorcal/calibration
+    chown system system /sys/class/proximity/proximity/proximity_avg
+    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_selftest
+    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_get_temp
+    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_power_on
+    chown system system /sys/devices/virtual/K3G_GYRO-dev/k3g/gyro_selftest_dps
+    chown system system /sys/devices/virtual/accelerometer/accelerometer/acc_file
+    chown system system /sys/devices/virtual/sec/gsensorcal/calibration
+    chown system system /sys/class/sensors/barometer_sensor/sea_level_pressure
+    chown system system /sys/class/sensors/barometer_sensor/eeprom_check
 
-service ril-daemon /system/bin/rild
-    class main
-    socket rild stream 660 root radio
-    socket rild-debug stream 660 radio system
-    user root
-    group radio cache inet misc audio sdcard_rw qcom_oncrpc qcom_diag log
+    #bln
+    chown system system /sys/class/misc/backlightnotification/notification_led
+    chown system system /sys/class/misc/backlightnotification/enabled
+
+    #camera
+    chown system camera /sys/class/ledflash/sec_ledflash/torch
+
+# vibrator (block this cmd temporary. vibrator driver cause reset during boot)
+    chown system system /sys/class/timed_output/vibrator/enable
+    chmod 0664 /sys/class/timed_output/vibrator/enable
+
+# Services begin here
 
 service secril-daemon /system/bin/sec-ril
     class main
@@ -353,20 +333,12 @@ service kickstart /system/bin/qcks l
 on property:ro.baseband=csfb
     wait /dev/ttyHSL1
     mkdir /data/qcks 0770 system system
-    exec /system/bin/sh /system/etc/init.qcom.mdm_links.sh
     start kickstart
 
 on property:ro.baseband=svlte2a
     wait /dev/ttyHSL1
     mkdir /data/qcks 0770 system system
-    exec /system/bin/sh /system/etc/init.qcom.mdm_links.sh
     start kickstart
-
-service modem_link /system/bin/sh /system/etc/init.qcom.modem_links.sh
-    class main
-    user root
-    disabled
-    oneshot
 
 service dcvsd0 /system/bin/dcvsd -c 0 -f /data/misc/dcvsd/dcvsd0.conf
     user root
@@ -401,5 +373,3 @@ on property:ro.baseband=svlte2a
 
 on property:sys.radio.shutdown=true
    exec /system/bin/sh /system/etc/init.qcom.efs.sync.sh
-   user root
-   group root
