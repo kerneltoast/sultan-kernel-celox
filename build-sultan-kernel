@@ -1,7 +1,6 @@
 #!/bin/sh
 
 ## Compile
-export CCACHE_DIR="/home/sultan/.ccache_kernel"
 export ARCH=arm
 export CROSS_COMPILE=/home/sultan/sultan-projects/arm-eabi-4.7/bin/arm-eabi-
 make -j100 ARCH=arm
