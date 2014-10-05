@@ -26,13 +26,14 @@ static unsigned int boost_duration_ms = 0;
 static unsigned int boost_freq_khz = 0;
 static unsigned int boost_override = 0;
 static unsigned int cpu_boosted = 0;
+static unsigned int enable = 1;
 static unsigned int init_done = 0;
 static unsigned int maxfreq_orig = 0;
 static unsigned int minfreq_orig = 0;
 
 void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms)
 {
-	if (init_done) {
+	if (init_done && enable) {
 		if (cpu_boosted) {
 			cpu_boosted = 0;
 			boost_override = 1;
@@ -47,7 +48,7 @@ void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms)
 
 void cpu_boost(unsigned int freq_mhz)
 {
-	if (init_done) {
+	if (init_done && enable) {
 		if (cpu_boosted) {
 			cpu_boosted = 0;
 			boost_override = 1;
@@ -62,8 +63,24 @@ void cpu_boost(unsigned int freq_mhz)
 
 void cpu_unboost(void)
 {
-	if (init_done)
+	if (init_done && enable)
 		complete(&cpu_boost_no_timeout);
+}
+
+void cpu_boost_shutdown(void)
+{
+	if (init_done) {
+		enable = 0;
+		pr_info("%s: CPU-boost disabled!\n", __func__);
+	}
+}
+
+void cpu_boost_startup(void)
+{
+	if (init_done) {
+		enable = 1;
+		pr_info("%s: CPU-boost enabled!\n", __func__);
+	}
 }
 
 static void save_original_cpu_limits(void)
