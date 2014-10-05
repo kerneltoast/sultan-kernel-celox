@@ -1535,7 +1535,9 @@ adreno_probe(struct platform_device *pdev)
 	if (status)
 		goto error_close_rb;
 
+#ifdef CONFIG_DEBUG_FS
 	adreno_debugfs_init(device);
+#endif
 
 	adreno_ft_init_sysfs(device);
 
