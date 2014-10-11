@@ -275,8 +275,7 @@ u32 rotator_allocate_2pass_buf(struct rot_buf_type *rot_buf, int s_ndx)
 		pr_info("%s:%d ion based allocation\n",
 			__func__, __LINE__);
 		rot_buf->ihdl = ion_alloc(mrd->client, buffer_size, SZ_4K,
-			mrd->rot_session[s_ndx]->mem_hid,
-			mrd->rot_session[s_ndx]->mem_hid & ION_SECURE);
+			mrd->rot_session[s_ndx]->mem_hid);
 		if (!IS_ERR_OR_NULL(rot_buf->ihdl)) {
 			if (rot_iommu_split_domain) {
 				if (ion_map_iommu(mrd->client, rot_buf->ihdl,
@@ -386,9 +385,9 @@ int msm_rotator_iommu_map_buf(int mem_id, int domain,
 	if (!msm_rotator_dev->client)
 		return -EINVAL;
 
-	*pihdl = ion_import_dma_buf(msm_rotator_dev->client, mem_id);
+	*pihdl = ion_import_fd(msm_rotator_dev->client, mem_id);
 	if (IS_ERR_OR_NULL(*pihdl)) {
-		pr_err("ion_import_dma_buf() failed\n");
+		pr_err("ion_import_fd() failed\n");
 		return PTR_ERR(*pihdl);
 	}
 	pr_debug("%s(): ion_hdl %p, ion_fd %d\n", __func__, *pihdl, mem_id);
