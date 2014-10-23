@@ -101,15 +101,15 @@ static void set_new_minfreq(struct cpufreq_policy *policy,
 
 static void restore_original_minfreq(void)
 {
-	struct cpufreq_policy *policy = NULL;
-	unsigned int cpu = 0;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 
-	for_each_online_cpu(cpu) {
-		policy = cpufreq_cpu_get(cpu);
-		set_new_minfreq(policy, minfreq_orig);
-		cpufreq_update_policy(cpu);
-		cpufreq_cpu_put(policy);
-	}
+	/*
+	 * Restore minfreq for only CPU0 as freq limits for other
+	 * CPUs are synced against CPU0 in msm/cpufreq.
+	 */
+	set_new_minfreq(policy, minfreq_orig);
+	cpufreq_update_policy(0);
+	cpufreq_cpu_put(policy);
 
 	boost_duration_ms = 0;
 	cpu_boosted = 0;
