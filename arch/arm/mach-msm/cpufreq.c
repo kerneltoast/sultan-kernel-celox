@@ -91,14 +91,20 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 	struct cpufreq_freqs freqs;
 	struct cpufreq_policy *cpu_policy;
 
-	/* sync maxfreq of all cpus with cpu0 */
+	/* sync freq limits of all cpus with cpu0 */
 	if (policy->cpu >= 1) {
 		cpu_policy = cpufreq_cpu_get(0);
+
+		if (policy->min != cpu_policy->min) {
+			policy->min = cpu_policy->min;
+			policy->user_policy.min = policy->min;
+		}
 
 		if (policy->max != cpu_policy->max) {
 			policy->max = cpu_policy->max;
 			policy->user_policy.max = policy->max;
 		}
+
 		cpufreq_cpu_put(cpu_policy);
 	}
 
