@@ -71,7 +71,7 @@ void cpu_boost_shutdown(void)
 {
 	if (init_done) {
 		enable = 0;
-		pr_info("%s: CPU-boost disabled!\n", __func__);
+		pr_info("%s: CPU-boost framework disabled!\n", __func__);
 	}
 }
 
@@ -79,11 +79,11 @@ void cpu_boost_startup(void)
 {
 	if (init_done) {
 		enable = 1;
-		pr_info("%s: CPU-boost enabled!\n", __func__);
+		pr_info("%s: CPU-boost framework enabled!\n", __func__);
 	}
 }
 
-static void save_original_cpu_limits(void)
+static void save_original_freq_limits(void)
 {
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 
@@ -93,23 +93,23 @@ static void save_original_cpu_limits(void)
 	cpufreq_cpu_put(policy);
 }
 
-static void set_new_minfreq(struct cpufreq_policy *policy,
-	unsigned int minfreq)
+static void set_new_minfreq(unsigned int minfreq, unsigned int cpu)
 {
+	struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+
 	policy->user_policy.min = minfreq;
+
+	cpufreq_update_policy(cpu);
+	cpufreq_cpu_put(policy);
 }
 
 static void restore_original_minfreq(void)
 {
-	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-
 	/*
 	 * Restore minfreq for only CPU0 as freq limits for other
 	 * CPUs are synced against CPU0 in msm/cpufreq.
 	 */
-	set_new_minfreq(policy, minfreq_orig);
-	cpufreq_update_policy(0);
-	cpufreq_cpu_put(policy);
+	set_new_minfreq(minfreq_orig, 0);
 
 	boost_duration_ms = 0;
 	cpu_boosted = 0;
@@ -118,7 +118,6 @@ static void restore_original_minfreq(void)
 
 static void __cpuinit cpu_boost_main(struct work_struct *work)
 {
-	struct cpufreq_policy *policy = NULL;
 	unsigned int cpu = 0, minfreq = 0, wait_ms = 0;
 
 	if (cpu_boosted) {
@@ -127,7 +126,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	if (!boost_override)
-		save_original_cpu_limits();
+		save_original_freq_limits();
 
 	if (boost_freq_khz) {
 		if (boost_freq_khz >= maxfreq_orig) {
@@ -140,13 +139,10 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 		} else
 			minfreq = boost_freq_khz;
 
-		/* boost online CPUs */
-		for_each_online_cpu(cpu) {
-			policy = cpufreq_cpu_get(cpu);
-			set_new_minfreq(policy, minfreq);
-			cpufreq_update_policy(cpu);
-			cpufreq_cpu_put(policy);
-		}
+		/* Boost online CPUs. */
+		for_each_online_cpu(cpu)
+			set_new_minfreq(minfreq, cpu);
+
 		cpu_boosted = 1;
 	}
 
@@ -154,7 +150,6 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 		wait_ms = boost_duration_ms;
 	else
 		wait_for_completion(&cpu_boost_no_timeout);
-
 
 	schedule_delayed_work(&boost_work,
 				msecs_to_jiffies(wait_ms));
