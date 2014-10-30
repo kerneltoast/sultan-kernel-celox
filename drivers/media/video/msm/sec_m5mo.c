@@ -15,6 +15,7 @@ ver 0.1 : only preview (base on universal)
 #include <media/msm_camera.h>
 #include <mach/gpio.h>
 #include <mach/camera.h>
+#include <mach/sec_battery.h>
 #include <mach/vreg.h>
 #include <linux/vmalloc.h>
 #include <linux/slab.h>
@@ -66,6 +67,12 @@ struct m5mo_work_t {
 static struct  m5mo_work_t *m5mo_sensorw;
 static struct  i2c_client *m5mo_client;
 static unsigned int config_csi;
+
+#define BATT_LOW_POWER 35
+static struct delayed_work flash_work;
+static unsigned int snapshot_low_pwr = 0;
+static int req_flash_mode = 0;
+static DECLARE_COMPLETION(snapshot);
 
 #if defined (CAMERA_WXGA_PREVIEW)
 static const struct m5mo_frmsizeenum m5mo_preview_sizes[] = {
@@ -1029,6 +1036,11 @@ static int m5mo_set_flash(int value)
 		cam_info("M5MO_FLASH_LOW_OFF is set");		
 		m5mo_writeb(M5MO_CATEGORY_CAPPARM, M5MO_CAPPARM_FLASH_LOWTEMP, 0x00);
 		break;		
+	case M5MO_FLASH_LOW_POWER_ON:
+		cam_info("Low-power flash is set");
+		m5mo_writeb(M5MO_CATEGORY_CAPPARM, M5MO_CAPPARM_LIGHT_CTRL, 0x03);
+		m5mo_writeb(M5MO_CATEGORY_CAPPARM, M5MO_CAPPARM_FLASH_CTRL, 0x00);
+		break;
 	default:
 		cam_err("Invalid");
 		break;
@@ -1037,6 +1049,30 @@ static int m5mo_set_flash(int value)
 	return 0;
 }
 
+static void low_power_flash(struct work_struct *work)
+{
+	static int flash_is_on = 0;
+
+	if (!flash_is_on) {
+		m5mo_set_flash(M5MO_FLASH_LOW_POWER_ON);
+		flash_is_on = 1;
+	}
+
+	if (snapshot_low_pwr) {
+		wait_for_completion(&snapshot);
+		goto end;
+	}
+
+	m5mo_set_flash(M5MO_FLASH_CAPTURE_OFF);
+	usleep(5 * 1000);
+	m5mo_set_flash(M5MO_FLASH_CAPTURE_ON);
+	flash_is_on = 0;
+	return;
+
+end:
+	schedule_delayed_work(&flash_work,
+				msecs_to_jiffies(200));
+}
 
 static int m5mo_set_effect_color(int8_t effect)
 {
@@ -1338,6 +1374,9 @@ static int m5mo_set_af(int val)
 // touch
 //	CAM_DEBUG("focus.touch = %d   focus.touchaf = %d", m5mo_ctrl->focus.touch,  m5mo_ctrl->focus.touchaf);
 	
+	if ((sec_get_batt_level() <= BATT_LOW_POWER) && req_flash_mode)
+		m5mo_set_flash(req_flash_mode);
+
 	if (m5mo_ctrl->focus.touchaf == 1) {
 		m5mo_set_touch_auto_focus(val);
 	} else {
@@ -2122,6 +2161,10 @@ static long m5mo_set_sensor_mode(int mode)
 	switch (mode) {
 	case SENSOR_PREVIEW_MODE:
 		CAM_DEBUG("SENSOR_PREVIEW_MODE START");
+		if (snapshot_low_pwr) {
+			snapshot_low_pwr = 0;
+			complete(&snapshot);
+		}
 		m5mo_mipi_mode(mode);
 		m5mo_preview_mode();
 		break;
@@ -2129,6 +2172,12 @@ static long m5mo_set_sensor_mode(int mode)
 	case SENSOR_SNAPSHOT_MODE:
 		CAM_DEBUG("SENSOR_SNAPSHOT_MODE START");
 		cpu_boost_timeout(1188, 3000);
+		if ((sec_get_batt_level() <= BATT_LOW_POWER) && req_flash_mode) {
+			snapshot_low_pwr = 1;
+			init_completion(&snapshot);
+			schedule_delayed_work(&flash_work, 0);
+			usleep(10 * 1000);
+		}
 		m5mo_snapshot_mode();
 		break;
 
@@ -2464,6 +2513,8 @@ int m5mo_sensor_open_init(const struct msm_camera_sensor_info *data)
 
 	cam_err("X");
 init_done:
+	if (sec_get_batt_level() <= BATT_LOW_POWER)
+		m5mo_set_flash(req_flash_mode);
 	return rc;
 
 init_fail:
@@ -2672,7 +2723,11 @@ int m5mo_sensor_ext_config(void __user *argp)
 		break;
 		
 	case EXT_CFG_SET_FLASH:
-		rc = m5mo_set_flash(cfg_data.value_1);
+		req_flash_mode = cfg_data.value_1;
+		if ((sec_get_batt_level() > BATT_LOW_POWER) ||
+			(req_flash_mode == M5MO_FLASH_CAPTURE_OFF) ||
+			(req_flash_mode == M5MO_FLASH_MOVIE_ON))
+			rc = m5mo_set_flash(req_flash_mode);
 		break;
 		
 	case EXT_CFG_SET_SCENE:
@@ -3323,6 +3378,8 @@ static int __init sec_m5mo_init(void)
 		return 0;
 	}
 #endif
+
+	INIT_DELAYED_WORK(&flash_work, low_power_flash);
 
 	return platform_driver_register(&msm_camera_driver);
 }

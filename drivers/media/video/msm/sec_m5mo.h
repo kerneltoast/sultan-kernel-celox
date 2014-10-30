@@ -204,6 +204,7 @@ struct m5mo_frmsizeenum {
 #define M5MO_FLASH_MOVIE_ALWAYS		4
 #define M5MO_FLASH_LOW_ON		5
 #define M5MO_FLASH_LOW_OFF		6
+#define M5MO_FLASH_LOW_POWER_ON		7
 
 
 /* JPEG Quality */ 

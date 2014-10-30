@@ -633,6 +633,13 @@ static enum power_supply_property sec_power_props[] = {
 static int sec_bat_read_adc(struct sec_bat_info *info, int channel,
 		int *adc_data, int *adc_physical);
 
+static int batt_level = 100;
+
+int sec_get_batt_level(void)
+{
+	return batt_level;
+}
+
 #ifdef ADC_QUEUE_FEATURE
 static int sec_bat_get_adc_depot(struct sec_bat_info *info, int channel,
 		int *adc_data, int *adc_physical)
@@ -2431,6 +2438,8 @@ static void sec_bat_update_info(struct sec_bat_info *info)
 	info->batt_rcomp = sec_bat_get_fuelgauge_data(info, FG_T_RCOMP);
 	info->batt_full_soc = sec_bat_get_fuelgauge_data(info, FG_T_FSOC);
 	sec_bat_notify_vcell2charger(info);
+
+	batt_level = info->batt_soc;
 }
 
 int cable_type = 0;
