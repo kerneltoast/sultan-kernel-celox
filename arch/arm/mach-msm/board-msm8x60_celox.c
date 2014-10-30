@@ -14155,20 +14155,14 @@ static int mipi_S6E8AA0_panel_power(int enable)
 static int panel_uv = 0;
 module_param(panel_uv, int, 0664);
 
-void lcdc_panel_uv(int panel_undervolt)
-{
-	panel_uv = panel_undervolt;
-}
+#define LD9040_DEFAULT_VOLTAGE 3000000
 
 int lcdc_LD9040_panel_power(int enable)
 {
 	static struct regulator *l3 = NULL;
 	static struct regulator *l19 = NULL;
 	int ret;
-	int panel_voltage;
-	static int panel_voltage_after = 3000000;
-
-	panel_voltage = (3000000 - (panel_uv * 1000));
+	static int panel_voltage = LD9040_DEFAULT_VOLTAGE;
 
 	printk("[kmj] %s:enable:%d\n", __FUNCTION__, enable);
 
@@ -14189,38 +14183,23 @@ int lcdc_LD9040_panel_power(int enable)
 		if (IS_ERR(l19))
 			return -1;
 
-		ret = regulator_set_voltage(l19, 3000000, 3000000);
+		ret = regulator_set_voltage(l19, LD9040_DEFAULT_VOLTAGE, LD9040_DEFAULT_VOLTAGE);
 		if (ret) {
 			printk("%s: error setting voltage\n", __func__);
 		}
 	}
 
-	// Panel-undervolt interface
-	// Do nothing if panel voltage has already been transformed
-	if (panel_voltage_after != panel_voltage) {
-		// Check if requested panel voltage is in bounds
-		if ((panel_voltage < 2500000) || (panel_voltage > 3000000)) {
-			printk("%s: %dmV is out of range\n", __func__, panel_uv);
-			printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
-			panel_voltage = panel_voltage_after;
-		} else {
-			// Check if requested panel voltage is a multiple
-			// of 25mV
-			if ((panel_voltage % 25000) != 0) {
-				printk("%s: %dmV undervolt is not a multiple of 25\n", __func__, panel_uv);
-				printk("%s: falling back to %dmV\n", __func__, (panel_voltage_after/1000));
-				panel_voltage = panel_voltage_after;
-			} else {
-				ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
-				if (ret)
-					printk("%s: error setting panel voltage\n", __func__);
-				else
-					printk("%s: panel voltage is now %dmV\n", __func__, (panel_voltage/1000));
-					panel_voltage_after = panel_voltage;
-			}
-		}
+	/* Panel-undervolt interface */
+	if ((panel_uv < 0) || (panel_uv > 500) || ((panel_uv % 25) != 0)) {
+		printk("%s: invalid undervolt set: %dmV\n", __func__, panel_uv);
+		panel_uv = (LD9040_DEFAULT_VOLTAGE - panel_voltage) / 1000;
+		printk("%s: falling back to %dmV undervolt\n", __func__, panel_uv);
+	} else if (panel_uv != (LD9040_DEFAULT_VOLTAGE - panel_voltage) / 1000) {
+		panel_voltage = LD9040_DEFAULT_VOLTAGE - (panel_uv * 1000);
 
-		lcdc_panel_uv((3000000 - panel_voltage)/1000);
+		ret = regulator_set_voltage(l19, panel_voltage, panel_voltage);
+		if (ret)
+			printk("%s: error setting voltage\n", __func__);
 	}
 
 	if (enable) {

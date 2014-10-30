@@ -558,7 +558,7 @@ void msm_snddev_tx_route_deconfig(void);
 
 extern unsigned int msm_shared_ram_phys; /* defined in arch/arm/mach-msm/io.c */
 
-/* panel undervolt - Skyrocket (I727) */
+/* celox LD9040 panel power */
 int lcdc_LD9040_panel_power(int enable);
 
 #endif
