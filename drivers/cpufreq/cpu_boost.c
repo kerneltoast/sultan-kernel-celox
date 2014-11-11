@@ -129,7 +129,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 		save_original_freq_limits();
 
 	if (boost_freq_khz) {
-		if (boost_freq_khz >= maxfreq_orig) {
+		if (boost_freq_khz > maxfreq_orig) {
 			if (maxfreq_orig <= 486000) {
 				boost_duration_ms = 0;
 				boost_override = 0;
