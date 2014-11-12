@@ -4,7 +4,7 @@ obj-$(CONFIG_CPU_FREQ)			+= cpufreq.o
 obj-$(CONFIG_CPU_FREQ_STAT)             += cpufreq_stats.o
 
 # CPU-boost framework
-obj-$(CONFIG_CPU_BOOST_FRAMEWORK)	+= cpu_boost.o
+obj-$(CONFIG_CPU_BOOST_FRAMEWORK)	+= cpu-boost_framework.o
 
 # CPUfreq governors 
 obj-$(CONFIG_CPU_FREQ_GOV_PERFORMANCE)	+= cpufreq_performance.o
