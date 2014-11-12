@@ -85,7 +85,21 @@ void cpu_boost_startup(void)
 
 static void save_original_freq_limits(void)
 {
-	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	struct cpufreq_policy *policy;
+	int retry_count = 0;
+
+retry:
+	policy = cpufreq_cpu_get(0);
+
+	if (unlikely(!policy)) {
+		pr_err("%s: CPU-boost: Error acquiring CPU0 policy, try #%d\n",
+								__func__, retry_count);
+		if (retry_count <= 3) {
+			retry_count++;
+			goto retry;
+		}
+		return;
+	}
 
 	minfreq_orig = policy->user_policy.min;
 	maxfreq_orig = policy->user_policy.max;
@@ -93,13 +107,27 @@ static void save_original_freq_limits(void)
 	cpufreq_cpu_put(policy);
 }
 
-static void set_new_minfreq(unsigned int minfreq, unsigned int cpu)
+static void set_new_minfreq(unsigned int minfreq)
 {
-	struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+	struct cpufreq_policy *policy;
+	int retry_count = 0;
+
+retry:
+	policy = cpufreq_cpu_get(0);
+
+	if (unlikely(!policy)) {
+		pr_err("%s: CPU-boost: Error acquiring CPU0 policy, try #%d\n",
+								__func__, retry_count);
+		if (retry_count <= 3) {
+			retry_count++;
+			goto retry;
+		}
+		return;
+	}
 
 	policy->user_policy.min = minfreq;
 
-	cpufreq_update_policy(cpu);
+	cpufreq_update_policy(0);
 	cpufreq_cpu_put(policy);
 }
 
@@ -109,7 +137,7 @@ static void restore_original_minfreq(void)
 	 * Restore minfreq for only CPU0 as freq limits for other
 	 * CPUs are synced against CPU0 in msm/cpufreq.
 	 */
-	set_new_minfreq(minfreq_orig, 0);
+	set_new_minfreq(minfreq_orig);
 
 	boost_duration_ms = 0;
 	cpu_boosted = 0;
@@ -118,7 +146,7 @@ static void restore_original_minfreq(void)
 
 static void __cpuinit cpu_boost_main(struct work_struct *work)
 {
-	unsigned int cpu = 0, minfreq = 0, wait_ms = 0;
+	unsigned int minfreq = 0, wait_ms = 0;
 
 	if (cpu_boosted) {
 		restore_original_minfreq();
@@ -140,8 +168,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 			minfreq = boost_freq_khz;
 
 		/* Boost online CPUs. */
-		for_each_online_cpu(cpu)
-			set_new_minfreq(minfreq, cpu);
+		set_new_minfreq(minfreq);
 
 		cpu_boosted = 1;
 	}
