@@ -17,8 +17,10 @@
 #include <linux/cpu_boost.h>
 #include <linux/cpufreq.h>
 #include <linux/init.h>
+#include <linux/input.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
+#include <linux/slab.h>
 
 static struct delayed_work boost_work;
 
@@ -31,6 +33,13 @@ static unsigned int cpu_boosted = 0;
 static unsigned int enable = 1;
 static unsigned int init_done = 0;
 static unsigned int minfreq_orig = 0;
+static unsigned int minfreq_inf = 0;
+
+static unsigned int input_boost_freq;
+module_param(input_boost_freq, uint, 0644);
+
+static unsigned int input_boost_ms;
+module_param(input_boost_ms, uint, 0644);
 
 void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
@@ -58,21 +67,24 @@ void cpu_boost(unsigned int freq)
 
 		init_completion(&cpu_boost_no_timeout);
 		boost_freq = freq;
+		minfreq_inf = freq;
 		schedule_delayed_work(&boost_work, 0);
 	}
 }
 
 void cpu_unboost(void)
 {
-	if (init_done && enable)
+	if (init_done && enable) {
 		complete(&cpu_boost_no_timeout);
+		minfreq_inf = 0;
+	}
 }
 
 void cpu_boost_shutdown(void)
 {
 	if (init_done) {
 		enable = 0;
-		pr_info("%s: boosting disabled!\n", __func__);
+		pr_info("boosting disabled!\n");
 	}
 }
 
@@ -80,43 +92,45 @@ void cpu_boost_startup(void)
 {
 	if (init_done) {
 		enable = 1;
-		pr_info("%s: boosting enabled!\n", __func__);
+		pr_info("boosting enabled!\n");
 	}
 }
 
 static void save_orig_minfreq(void)
 {
 	struct cpufreq_policy *policy;
-	int retry_count = 0;
+	unsigned int retry_cnt = 0;
 
 retry:
 	policy = cpufreq_cpu_get(0);
 
 	if (unlikely(!policy)) {
-		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_count);
-		if (retry_count <= 3) {
-			retry_count++;
+		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
+		if (retry_cnt <= 3) {
+			retry_cnt++;
 			goto retry;
 		}
 		return;
 	}
 
-	minfreq_orig = policy->user_policy.min;
+	if (policy->user_policy.min != minfreq_inf)
+		minfreq_orig = policy->user_policy.min;
+
 	cpufreq_cpu_put(policy);
 }
 
 static void set_new_minfreq(unsigned int minfreq)
 {
 	struct cpufreq_policy *policy;
-	int retry_count = 0;
+	unsigned int retry_cnt = 0;
 
 retry:
 	policy = cpufreq_cpu_get(0);
 
 	if (unlikely(!policy)) {
-		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_count);
-		if (retry_count <= 3) {
-			retry_count++;
+		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
+		if (retry_cnt <= 3) {
+			retry_cnt++;
 			goto retry;
 		}
 		return;
@@ -143,7 +157,10 @@ static void restore_original_minfreq(void)
 	 * Restore minfreq for only CPU0 as freq limits for other
 	 * CPUs are synced against CPU0 in msm/cpufreq.
 	 */
-	set_new_minfreq(minfreq_orig);
+	if (minfreq_inf)
+		set_new_minfreq(minfreq_inf);
+	else
+		set_new_minfreq(minfreq_orig);
 
 	boost_duration_ms = 0;
 	cpu_boosted = 0;
@@ -176,13 +193,91 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 				msecs_to_jiffies(wait_ms));
 }
 
+static void cpu_boost_input_event(struct input_handle *handle, unsigned int type,
+		unsigned int code, int value)
+{
+	if (input_boost_freq && input_boost_ms)
+		cpu_boost_timeout(input_boost_freq, input_boost_ms);
+}
+
+static int cpu_boost_input_connect(struct input_handler *handler,
+		struct input_dev *dev, const struct input_device_id *id)
+{
+	struct input_handle *handle;
+	int error;
+
+	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
+	if (!handle)
+		return -ENOMEM;
+
+	handle->dev = dev;
+	handle->handler = handler;
+	handle->name = "cpufreq";
+
+	error = input_register_handle(handle);
+	if (error)
+		goto err2;
+
+	error = input_open_device(handle);
+	if (error)
+		goto err1;
+
+	return 0;
+err1:
+	input_unregister_handle(handle);
+err2:
+	kfree(handle);
+	return error;
+}
+
+static void cpu_boost_input_disconnect(struct input_handle *handle)
+{
+	input_close_device(handle);
+	input_unregister_handle(handle);
+	kfree(handle);
+}
+
+static const struct input_device_id cpu_boost_ids[] = {
+	/* multi-touch touchscreen */
+	{
+		.flags = INPUT_DEVICE_ID_MATCH_EVBIT |
+			INPUT_DEVICE_ID_MATCH_ABSBIT,
+		.evbit = { BIT_MASK(EV_ABS) },
+		.absbit = { [BIT_WORD(ABS_MT_POSITION_X)] =
+			BIT_MASK(ABS_MT_POSITION_X) |
+			BIT_MASK(ABS_MT_POSITION_Y) },
+	},
+	/* touchpad */
+	{
+		.flags = INPUT_DEVICE_ID_MATCH_KEYBIT |
+			INPUT_DEVICE_ID_MATCH_ABSBIT,
+		.keybit = { [BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH) },
+		.absbit = { [BIT_WORD(ABS_X)] =
+			BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) },
+	},
+	{ },
+};
+
+static struct input_handler cpu_boost_input_handler = {
+	.event		= cpu_boost_input_event,
+	.connect	= cpu_boost_input_connect,
+	.disconnect	= cpu_boost_input_disconnect,
+	.name		= "cpu-boost_framework",
+	.id_table	= cpu_boost_ids,
+};
+
 static int __init cpu_boost_init(void)
 {
+	int ret;
+
 	INIT_DELAYED_WORK(&boost_work, cpu_boost_main);
+	ret = input_register_handler(&cpu_boost_input_handler);
+	if (ret)
+		pr_err("Failed to register input handler, err: %d\n", ret);
 
 	init_done = 1;
 
-	return 0;
+	return ret;
 }
 late_initcall(cpu_boost_init);
 
