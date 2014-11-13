@@ -25,14 +25,14 @@ static struct delayed_work boost_work;
 static DECLARE_COMPLETION(cpu_boost_no_timeout);
 
 static unsigned int boost_duration_ms = 0;
-static unsigned int boost_freq_khz = 0;
+static unsigned int boost_freq = 0;
 static unsigned int boost_override = 0;
 static unsigned int cpu_boosted = 0;
 static unsigned int enable = 1;
 static unsigned int init_done = 0;
 static unsigned int minfreq_orig = 0;
 
-void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms)
+void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
 	if (init_done && enable) {
 		if (cpu_boosted) {
@@ -41,13 +41,13 @@ void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms)
 			cancel_delayed_work(&boost_work);
 		}
 
-		boost_freq_khz = freq_mhz * 1000;
+		boost_freq = freq;
 		boost_duration_ms = duration_ms;
 		schedule_delayed_work(&boost_work, 0);
 	}
 }
 
-void cpu_boost(unsigned int freq_mhz)
+void cpu_boost(unsigned int freq)
 {
 	if (init_done && enable) {
 		if (cpu_boosted) {
@@ -57,7 +57,7 @@ void cpu_boost(unsigned int freq_mhz)
 		}
 
 		init_completion(&cpu_boost_no_timeout);
-		boost_freq_khz = freq_mhz * 1000;
+		boost_freq = freq;
 		schedule_delayed_work(&boost_work, 0);
 	}
 }
@@ -162,8 +162,8 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	if (!boost_override)
 		save_orig_minfreq();
 
-	if (boost_freq_khz) {
-		set_new_minfreq(boost_freq_khz);
+	if (boost_freq) {
+		set_new_minfreq(boost_freq);
 		cpu_boosted = 1;
 	}
 

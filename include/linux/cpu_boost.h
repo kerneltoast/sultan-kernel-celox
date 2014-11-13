@@ -24,13 +24,13 @@
  * @freq_mhz:	frequency in MHz to boost the CPUs by
  * @duration_ms: duration in milliseconds to boost the CPUs
  */
-void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms);
+void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms);
 
 /**
  * cpu_boost() - boost online CPUs indefinitely
  * @freq_mhz:	frequency in MHz to boost the CPUs by
  */
-void cpu_boost(unsigned int freq_mhz);
+void cpu_boost(unsigned int freq);
 
 /**
  * cpu_unboost() - unboost indefinitely-boosted CPUs
@@ -48,8 +48,8 @@ void cpu_boost_shutdown(void);
 void cpu_boost_startup(void);
 
 #else
-static inline void cpu_boost_timeout(unsigned int freq_mhz, unsigned int duration_ms) { }
-static inline void cpu_boost(unsigned int freq_mhz) { }
+static inline void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms) { }
+static inline void cpu_boost(unsigned int freq) { }
 static inline void cpu_unboost(void) { }
 static inline void cpu_boost_shutdown(void) { }
 static inline void cpu_boost_startup(void) { }
