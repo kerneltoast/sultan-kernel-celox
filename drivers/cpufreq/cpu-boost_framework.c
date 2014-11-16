@@ -136,18 +136,11 @@ retry:
 		return;
 	}
 
-	if (minfreq > policy->user_policy.max) {
-		if (policy->user_policy.max <= 486000) {
-			boost_duration_ms = 0;
-			boost_override = 0;
-			goto abort;
-		} else
-			minfreq = policy->user_policy.max - 108000;
-	}
+	if (minfreq > policy->user_policy.max)
+		minfreq = policy->user_policy.max;
 
 	policy->user_policy.min = minfreq;
 	cpufreq_update_policy(0);
-abort:
 	cpufreq_cpu_put(policy);
 }
 
