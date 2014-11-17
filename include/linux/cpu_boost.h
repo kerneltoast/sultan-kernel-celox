@@ -26,6 +26,11 @@
  */
 void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms);
 
+struct boost_policy {
+	unsigned int min;
+	unsigned int saved_min;
+};
+
 #else
 static inline void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms) { }
 

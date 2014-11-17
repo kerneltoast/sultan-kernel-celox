@@ -16,12 +16,15 @@
 #include <linux/cpu.h>
 #include <linux/cpu_boost.h>
 #include <linux/cpufreq.h>
+#include <linux/cpumask.h>
 #include <linux/init.h>
 #include <linux/input.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/slab.h>
 
+struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
+static struct boost_policy saved_policy[CONFIG_NR_CPUS];
 static struct delayed_work boost_work;
 static DECLARE_COMPLETION(cpu_boost_no_timeout);
 
@@ -29,7 +32,6 @@ static unsigned int boost_freq = 0;
 static unsigned int boost_ms = 0;
 static unsigned int cpu_boosted = 0;
 static unsigned int init_done = 0;
-static unsigned int minfreq_orig = 0;
 
 static unsigned int input_boost_freq;
 module_param(input_boost_freq, uint, 0644);
@@ -53,50 +55,66 @@ void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 static void save_orig_minfreq(void)
 {
 	struct cpufreq_policy *policy;
-	unsigned int retry_cnt = 0;
+	unsigned int cpu;
 
-retry:
-	policy = cpufreq_cpu_get(0);
-	if (unlikely(!policy)) {
-		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
-		if (retry_cnt <= 3) {
-			retry_cnt++;
-			goto retry;
-		}
-		return;
+	get_online_cpus();
+	for_each_possible_cpu(cpu) {
+		if (cpu_online(cpu)) {
+			policy = cpufreq_cpu_get(cpu);
+			if (likely(policy)) {
+				saved_policy[cpu].min = policy->user_policy.min;
+				cpu_boost_policy[cpu].saved_min = saved_policy[cpu].min;
+				cpufreq_cpu_put(policy);
+			}
+		} else if (cpu_boost_policy[cpu].saved_min)
+			saved_policy[cpu].min = cpu_boost_policy[cpu].saved_min;
 	}
-
-	minfreq_orig = policy->user_policy.min;
-	cpufreq_cpu_put(policy);
+	put_online_cpus();
 }
 
 static void set_new_minfreq(unsigned int minfreq)
 {
 	struct cpufreq_policy *policy;
-	unsigned int retry_cnt = 0;
+	unsigned int cpu;
 
-retry:
-	policy = cpufreq_cpu_get(0);
-	if (unlikely(!policy)) {
-		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
-		if (retry_cnt <= 3) {
-			retry_cnt++;
-			goto retry;
+	get_online_cpus();
+	for_each_possible_cpu(cpu) {
+		if (cpu_online(cpu)) {
+			policy = cpufreq_cpu_get(cpu);
+			if (likely(policy)) {
+				if (minfreq > policy->user_policy.max)
+					minfreq = policy->user_policy.max;
+				policy->user_policy.min = minfreq;
+				cpufreq_update_policy(cpu);
+				cpufreq_cpu_put(policy);
+			}
 		}
-		return;
+		cpu_boost_policy[cpu].min = minfreq;
 	}
-
-	if (minfreq > policy->user_policy.max)
-		minfreq = policy->user_policy.max;
-
-	policy->user_policy.min = minfreq;
-	cpufreq_update_policy(0);
-	cpufreq_cpu_put(policy);
+	put_online_cpus();
 }
 
 static void restore_orig_minfreq(void)
 {
-	set_new_minfreq(minfreq_orig);
+	struct cpufreq_policy *policy;
+	unsigned int cpu;
+
+	get_online_cpus();
+	for_each_possible_cpu(cpu) {
+		if (saved_policy[cpu].min) {
+			if (cpu_online(cpu)) {
+				policy = cpufreq_cpu_get(cpu);
+				if (likely(policy)) {
+					policy->user_policy.min = saved_policy[cpu].min;
+					cpufreq_update_policy(cpu);
+					cpufreq_cpu_put(policy);
+				}
+			}
+			cpu_boost_policy[cpu].min = saved_policy[cpu].min;
+		}
+	}
+	put_online_cpus();
+
 	boost_ms = 0;
 	cpu_boosted = 0;
 }
