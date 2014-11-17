@@ -23,17 +23,13 @@
 #include <linux/slab.h>
 
 static struct delayed_work boost_work;
-
 static DECLARE_COMPLETION(cpu_boost_no_timeout);
 
-static unsigned int boost_duration_ms = 0;
 static unsigned int boost_freq = 0;
-static unsigned int boost_override = 0;
+static unsigned int boost_ms = 0;
 static unsigned int cpu_boosted = 0;
-static unsigned int enable = 1;
 static unsigned int init_done = 0;
 static unsigned int minfreq_orig = 0;
-static unsigned int minfreq_inf = 0;
 
 static unsigned int input_boost_freq;
 module_param(input_boost_freq, uint, 0644);
@@ -43,56 +39,14 @@ module_param(input_boost_ms, uint, 0644);
 
 void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
-	if (init_done && enable) {
+	if (init_done) {
 		if (cpu_boosted) {
-			cpu_boosted = 0;
-			boost_override = 1;
+			cpu_boosted = 2;
 			cancel_delayed_work(&boost_work);
 		}
-
 		boost_freq = freq;
-		boost_duration_ms = duration_ms;
+		boost_ms = duration_ms;
 		schedule_delayed_work(&boost_work, 0);
-	}
-}
-
-void cpu_boost(unsigned int freq)
-{
-	if (init_done && enable) {
-		if (cpu_boosted) {
-			cpu_boosted = 0;
-			boost_override = 1;
-			cancel_delayed_work(&boost_work);
-		}
-
-		init_completion(&cpu_boost_no_timeout);
-		boost_freq = freq;
-		minfreq_inf = freq;
-		schedule_delayed_work(&boost_work, 0);
-	}
-}
-
-void cpu_unboost(void)
-{
-	if (init_done && enable) {
-		complete(&cpu_boost_no_timeout);
-		minfreq_inf = 0;
-	}
-}
-
-void cpu_boost_shutdown(void)
-{
-	if (init_done) {
-		enable = 0;
-		pr_info("boosting disabled!\n");
-	}
-}
-
-void cpu_boost_startup(void)
-{
-	if (init_done) {
-		enable = 1;
-		pr_info("boosting enabled!\n");
 	}
 }
 
@@ -103,7 +57,6 @@ static void save_orig_minfreq(void)
 
 retry:
 	policy = cpufreq_cpu_get(0);
-
 	if (unlikely(!policy)) {
 		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
 		if (retry_cnt <= 3) {
@@ -113,9 +66,7 @@ retry:
 		return;
 	}
 
-	if (policy->user_policy.min != minfreq_inf)
-		minfreq_orig = policy->user_policy.min;
-
+	minfreq_orig = policy->user_policy.min;
 	cpufreq_cpu_put(policy);
 }
 
@@ -126,7 +77,6 @@ static void set_new_minfreq(unsigned int minfreq)
 
 retry:
 	policy = cpufreq_cpu_get(0);
-
 	if (unlikely(!policy)) {
 		pr_err("%s: Error acquiring CPU0 policy, try #%d\n", __func__, retry_cnt);
 		if (retry_cnt <= 3) {
@@ -144,46 +94,29 @@ retry:
 	cpufreq_cpu_put(policy);
 }
 
-static void restore_original_minfreq(void)
+static void restore_orig_minfreq(void)
 {
-	/*
-	 * Restore minfreq for only CPU0 as freq limits for other
-	 * CPUs are synced against CPU0 in msm/cpufreq.
-	 */
-	if (minfreq_inf)
-		set_new_minfreq(minfreq_inf);
-	else
-		set_new_minfreq(minfreq_orig);
-
-	boost_duration_ms = 0;
+	set_new_minfreq(minfreq_orig);
+	boost_ms = 0;
 	cpu_boosted = 0;
-	boost_override = 0;
 }
 
 static void __cpuinit cpu_boost_main(struct work_struct *work)
 {
-	unsigned int wait_ms = 0;
-
-	if (cpu_boosted) {
-		restore_original_minfreq();
+	if (!cpu_boosted)
+		save_orig_minfreq();
+	else if (cpu_boosted == 1) {
+		restore_orig_minfreq();
 		return;
 	}
-
-	if (!boost_override)
-		save_orig_minfreq();
 
 	if (boost_freq) {
 		set_new_minfreq(boost_freq);
 		cpu_boosted = 1;
 	}
 
-	if (boost_duration_ms)
-		wait_ms = boost_duration_ms;
-	else
-		wait_for_completion(&cpu_boost_no_timeout);
-
 	schedule_delayed_work(&boost_work,
-				msecs_to_jiffies(wait_ms));
+				msecs_to_jiffies(boost_ms));
 }
 
 static void cpu_boost_input_event(struct input_handle *handle, unsigned int type,
