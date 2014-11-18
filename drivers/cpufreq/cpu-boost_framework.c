@@ -24,7 +24,6 @@
 #include <linux/slab.h>
 
 struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
-static struct boost_policy local_policy[CONFIG_NR_CPUS];
 static struct delayed_work boost_work;
 
 static bool init_done = false;
@@ -63,12 +62,10 @@ static void save_orig_minfreq(void)
 		if (cpu_online(cpu)) {
 			policy = cpufreq_cpu_get(cpu);
 			if (likely(policy)) {
-				local_policy[cpu].saved_min = policy->user_policy.min;
-				cpu_boost_policy[cpu].saved_min = local_policy[cpu].saved_min;
+				cpu_boost_policy[cpu].saved_min = policy->user_policy.min;
 				cpufreq_cpu_put(policy);
 			}
-		} else if (cpu_boost_policy[cpu].saved_min)
-			local_policy[cpu].saved_min = cpu_boost_policy[cpu].saved_min;
+		}
 	}
 	put_online_cpus();
 }
@@ -102,11 +99,11 @@ static void restore_orig_minfreq(void)
 
 	get_online_cpus();
 	for_each_possible_cpu(cpu) {
-		if (local_policy[cpu].saved_min) {
+		if (cpu_boost_policy[cpu].saved_min) {
 			if (cpu_online(cpu)) {
 				policy = cpufreq_cpu_get(cpu);
 				if (likely(policy)) {
-					policy->user_policy.min = local_policy[cpu].saved_min;
+					policy->user_policy.min = cpu_boost_policy[cpu].saved_min;
 					cpufreq_cpu_put(policy);
 					cpufreq_update_policy(cpu);
 				}
