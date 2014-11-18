@@ -800,10 +800,11 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 	}
 
 #ifdef CONFIG_CPU_BOOST_FRAMEWORK
-	if (cpu_boost_policy[cpu].min) {
-		policy->min = cpu_boost_policy[cpu].min;
-		policy->user_policy.min = policy->min;
-	}
+	if (cpu_boost_policy[cpu].boost_freq)
+		policy->min = cpu_boost_policy[cpu].boost_freq;
+	else if (cpu_boost_policy[cpu].saved_min)
+		policy->min = cpu_boost_policy[cpu].saved_min;
+	policy->user_policy.min = policy->min;
 #endif
 
 	pr_debug("Restoring CPU%d min %d and max %d\n",
@@ -1162,7 +1163,7 @@ static int __cpufreq_remove_dev(struct sys_device *sys_dev)
 	per_cpu(cpufreq_policy_save, cpu).min = data->min;
 	per_cpu(cpufreq_policy_save, cpu).max = data->max;
 #ifdef CONFIG_CPU_BOOST_FRAMEWORK
-	if (!cpu_boost_policy[cpu].saved_min && (data->min != cpu_boost_policy[cpu].min))
+	if (!cpu_boost_policy[cpu].cpu_boosted)
 		cpu_boost_policy[cpu].saved_min = data->min;
 #endif
 	pr_debug("Saving CPU%d policy min %d and max %d\n",
