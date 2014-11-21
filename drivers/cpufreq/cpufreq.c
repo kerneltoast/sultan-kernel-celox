@@ -32,8 +32,8 @@
 
 #include <trace/events/power.h>
 
-#if defined(CONFIG_CPU_BOOST_FRAMEWORK) && defined(CONFIG_HOTPLUG_CPU)
-#include <linux/cpu_boost.h>
+#if defined(CONFIG_CPU_INPUT_BOOST) && defined(CONFIG_HOTPLUG_CPU)
+#include <linux/cpu_input_boost.h>
 extern struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
 #endif
 
@@ -799,7 +799,7 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 		policy->user_policy.max = policy->max;
 	}
 
-#ifdef CONFIG_CPU_BOOST_FRAMEWORK
+#ifdef CONFIG_CPU_INPUT_BOOST
 	if (cpu_boost_policy[cpu].boost_freq)
 		policy->min = cpu_boost_policy[cpu].boost_freq;
 	else if (cpu_boost_policy[cpu].saved_min)
@@ -1162,7 +1162,7 @@ static int __cpufreq_remove_dev(struct sys_device *sys_dev)
 			CPUFREQ_NAME_LEN);
 	per_cpu(cpufreq_policy_save, cpu).min = data->min;
 	per_cpu(cpufreq_policy_save, cpu).max = data->max;
-#ifdef CONFIG_CPU_BOOST_FRAMEWORK
+#ifdef CONFIG_CPU_INPUT_BOOST
 	if (!cpu_boost_policy[cpu].cpu_boosted)
 		cpu_boost_policy[cpu].saved_min = data->min;
 #endif

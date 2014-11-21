@@ -217,12 +217,10 @@ depends on X86
 source "drivers/cpufreq/Kconfig.x86"
 endmenu
 
-config CPU_BOOST_FRAMEWORK
-	bool "CPU-boost framework"
+config CPU_INPUT_BOOST
+	bool "CPU Input Boost"
 	help
-	  This allows you to place hooks in various drivers to
-	  boost the CPU for either a specified duration or
-	  indefinitely (until it is manually unboosted).
+	  Boost the CPU on touchscreen or touchpad input.
 
 endif
 endmenu

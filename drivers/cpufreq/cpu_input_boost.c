@@ -14,9 +14,9 @@
 #define pr_fmt(fmt) "CPU-boost: " fmt
 
 #include <linux/cpu.h>
-#include <linux/cpu_boost.h>
 #include <linux/cpufreq.h>
 #include <linux/cpumask.h>
+#include <linux/cpu_input_boost.h>
 #include <linux/init.h>
 #include <linux/input.h>
 #include <linux/module.h>
@@ -26,30 +26,26 @@
 struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
 static struct delayed_work boost_work;
 
-static bool init_done = false;
-
 static unsigned int input_boost_freq;
 module_param(input_boost_freq, uint, 0644);
 
 static unsigned int input_boost_ms;
 module_param(input_boost_ms, uint, 0644);
 
-void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
+static void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
 	unsigned int cpu, cpu_boosted;
 
-	if (init_done) {
-		cpu_boosted = cpu_boost_policy[0].cpu_boosted;
+	cpu_boosted = cpu_boost_policy[0].cpu_boosted;
+	if (cpu_boosted)
+		cancel_delayed_work(&boost_work);
+	for_each_possible_cpu(cpu) {
 		if (cpu_boosted)
-			cancel_delayed_work(&boost_work);
-		for_each_possible_cpu(cpu) {
-			if (cpu_boosted)
-				cpu_boost_policy[cpu].cpu_boosted = 2;
-			cpu_boost_policy[cpu].boost_freq = freq;
-			cpu_boost_policy[cpu].boost_ms = duration_ms;
-		}
-		schedule_delayed_work(&boost_work, 0);
+			cpu_boost_policy[cpu].cpu_boosted = 2;
+		cpu_boost_policy[cpu].boost_freq = freq;
+		cpu_boost_policy[cpu].boost_ms = duration_ms;
 	}
+	schedule_delayed_work(&boost_work, 0);
 }
 
 static void save_orig_minfreq(void)
@@ -206,7 +202,7 @@ static struct input_handler cpu_boost_input_handler = {
 	.event		= cpu_boost_input_event,
 	.connect	= cpu_boost_input_connect,
 	.disconnect	= cpu_boost_input_disconnect,
-	.name		= "cpu-boost_framework",
+	.name		= "cpu_input_boost",
 	.id_table	= cpu_boost_ids,
 };
 
@@ -219,12 +215,10 @@ static int __init cpu_boost_init(void)
 	if (ret)
 		pr_err("Failed to register input handler, err: %d\n", ret);
 
-	init_done = true;
-
 	return ret;
 }
 late_initcall(cpu_boost_init);
 
 MODULE_AUTHOR("Sultanxda <sultanxda@gmail.com>");
-MODULE_DESCRIPTION("CPU-boost framework");
+MODULE_DESCRIPTION("CPU Input Boost");
 MODULE_LICENSE("GPLv2");
