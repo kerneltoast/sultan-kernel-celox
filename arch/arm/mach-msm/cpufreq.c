@@ -95,11 +95,6 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 	if (policy->cpu >= 1) {
 		cpu_policy = cpufreq_cpu_get(0);
 
-		if (policy->min != cpu_policy->min) {
-			policy->min = cpu_policy->min;
-			policy->user_policy.min = policy->min;
-		}
-
 		if (policy->max != cpu_policy->max) {
 			policy->max = cpu_policy->max;
 			policy->user_policy.max = policy->max;
