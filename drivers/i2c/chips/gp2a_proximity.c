@@ -17,7 +17,6 @@
  * MA  02110-1301, USA.
  */
 
-#include <linux/cpu_boost.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/i2c.h>
@@ -220,8 +219,6 @@ proximity_enable_store(struct device *dev, struct device_attribute *attr, const 
     }
 
     if (data->enabled && !value) { 			/* Proximity power off */
-		cpu_boost_startup();
-
         disable_irq(data->gp2a_irq);
 
 		proximity_onoff(0);
@@ -232,8 +229,6 @@ proximity_enable_store(struct device *dev, struct device_attribute *attr, const 
 			data->power_off();
     }
     if (!data->enabled && value) {			/* proximity power on */
-		cpu_boost_shutdown();
-
 		if(data->power_on)
 			data->power_on();
 		if(data->gp2a_led_on)

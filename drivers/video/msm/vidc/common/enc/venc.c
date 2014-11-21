@@ -12,7 +12,6 @@
  */
 
 #include <linux/cdev.h>
-#include <linux/cpu_boost.h>
 #include <linux/device.h>
 #include <linux/firmware.h>
 #include <linux/fs.h>
@@ -617,9 +616,6 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 {
 	int rc = 0;
 	struct video_client_ctx *client_ctx = NULL;
-
-	cpu_boost(594);
-
 	INFO("msm_vidc_venc: Inside %s()", __func__);
 	mutex_lock(&vid_enc_device_p->lock);
 	rc = vid_enc_open_client(&client_ctx, 0);
@@ -647,9 +643,6 @@ static int vid_enc_release(struct inode *inode, struct file *file)
 	vidc_disable_clk();
 #endif
 	INFO("\n msm_vidc_enc: Return from %s()", __func__);
-
-	cpu_unboost();
-
 	return 0;
 }
 static int vid_enc_open_secure(struct inode *inode, struct file *file)
@@ -658,8 +651,6 @@ static int vid_enc_open_secure(struct inode *inode, struct file *file)
 	struct video_client_ctx *client_ctx = NULL;
 	struct vcd_property_hdr vcd_property_hdr;
 	struct vcd_property_sps_pps_for_idr_enable idr_enable;
-
-	cpu_boost(594);
 
 	INFO("msm_vidc_enc: Inside %s()", __func__);
 	mutex_lock(&vid_enc_device_p->lock);
