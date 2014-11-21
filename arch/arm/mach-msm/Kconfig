@@ -94,7 +94,6 @@ config ARCH_MSM8X60
 	select MSM_SECURE_IO
 	select MSM_DALRPC
 	select MSM_QDSP6_APR
-	select MSM_QDSP6_CODECS
 	select MSM_NATIVE_RESTART
 	select ARCH_INLINE_SPIN_TRYLOCK
 	select ARCH_INLINE_SPIN_TRYLOCK_BH
@@ -2185,16 +2184,6 @@ config MSM_QDSP6_APR
 	default n
 	help
 	  Enable APR IPC protocol support between
-	  application processor and QDSP6. APR is
-	  used by audio driver to configure QDSP6's
-	  ASM, ADM and AFE.
-
-config MSM_QDSP6_CODECS
-	bool "Audio Codecs on QDSP6 APR "
-	depends on MSM_SMD
-	default n
-	help
-	  Enable Audio codecs with APR IPC protocol support between
 	  application processor and QDSP6. APR is
 	  used by audio driver to configure QDSP6's
 	  ASM, ADM and AFE.

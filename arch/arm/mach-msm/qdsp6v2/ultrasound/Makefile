@@ -1,2 +1,2 @@
-obj-y += q6usm.o usf.o usfcdev.o
+obj-y += q6usm.o usf.o
 EXTRA_CFLAGS += -I$(src)/..
