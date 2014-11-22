@@ -20,6 +20,7 @@
 #include <linux/earlysuspend.h>
 #include <linux/init.h>
 #include <linux/input.h>
+#include <linux/hardirq.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/slab.h>
@@ -39,7 +40,7 @@ static void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
 	unsigned int cpu, cpu_boosted;
 
-	if (!suspended) {
+	if (!suspended && !in_irq()) {
 		cpu_boosted = cpu_boost_policy[0].cpu_boosted;
 		if (cpu_boosted)
 			cancel_delayed_work(&boost_work);
@@ -142,7 +143,8 @@ static void cpu_boost_early_suspend(struct early_suspend *handler)
 {
 	suspended = true;
 
-	cancel_delayed_work(&boost_work);
+	if (!in_irq())
+		cancel_delayed_work(&boost_work);
 
 	if (cpu_boost_policy[0].cpu_boosted)
 		restore_orig_minfreq();
