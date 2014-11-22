@@ -17,6 +17,7 @@
 #include <linux/cpufreq.h>
 #include <linux/cpumask.h>
 #include <linux/cpu_input_boost.h>
+#include <linux/earlysuspend.h>
 #include <linux/init.h>
 #include <linux/input.h>
 #include <linux/module.h>
@@ -25,6 +26,8 @@
 
 struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
 static struct delayed_work boost_work;
+
+static bool suspended = false;
 
 static unsigned int input_boost_freq;
 module_param(input_boost_freq, uint, 0644);
@@ -36,16 +39,18 @@ static void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 {
 	unsigned int cpu, cpu_boosted;
 
-	cpu_boosted = cpu_boost_policy[0].cpu_boosted;
-	if (cpu_boosted)
-		cancel_delayed_work(&boost_work);
-	for_each_possible_cpu(cpu) {
+	if (!suspended) {
+		cpu_boosted = cpu_boost_policy[0].cpu_boosted;
 		if (cpu_boosted)
-			cpu_boost_policy[cpu].cpu_boosted = 2;
-		cpu_boost_policy[cpu].boost_freq = freq;
-		cpu_boost_policy[cpu].boost_ms = duration_ms;
+			cancel_delayed_work(&boost_work);
+		for_each_possible_cpu(cpu) {
+			if (cpu_boosted)
+				cpu_boost_policy[cpu].cpu_boosted = 2;
+			cpu_boost_policy[cpu].boost_freq = freq;
+			cpu_boost_policy[cpu].boost_ms = duration_ms;
+		}
+		schedule_delayed_work(&boost_work, 0);
 	}
-	schedule_delayed_work(&boost_work, 0);
 }
 
 static void save_orig_minfreq(void)
@@ -133,6 +138,27 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 				msecs_to_jiffies(cpu_boost_policy[0].boost_ms));
 }
 
+static void cpu_boost_early_suspend(struct early_suspend *handler)
+{
+	suspended = true;
+
+	cancel_delayed_work(&boost_work);
+
+	if (cpu_boost_policy[0].cpu_boosted)
+		restore_orig_minfreq();
+}
+
+static void __cpuinit cpu_boost_late_resume(struct early_suspend *handler)
+{
+	suspended = false;
+}
+
+static struct early_suspend __refdata cpu_boost_early_suspend_handler = {
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+	.suspend = cpu_boost_early_suspend,
+	.resume = cpu_boost_late_resume,
+};
+
 static void cpu_boost_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
@@ -219,6 +245,8 @@ static int __init cpu_boost_init(void)
 	ret = input_register_handler(&cpu_boost_input_handler);
 	if (ret)
 		pr_err("Failed to register input handler, err: %d\n", ret);
+
+	register_early_suspend(&cpu_boost_early_suspend_handler);
 
 	return ret;
 }
