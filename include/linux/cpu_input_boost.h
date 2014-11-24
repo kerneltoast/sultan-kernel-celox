@@ -17,7 +17,6 @@
 #ifndef _LINUX_CPU_INPUT_BOOST_H
 #define _LINUX_CPU_INPUT_BOOST_H
 
-
 #ifdef CONFIG_CPU_INPUT_BOOST
 struct boost_policy {
 	unsigned int boost_freq;
@@ -25,6 +24,8 @@ struct boost_policy {
 	unsigned int cpu_boosted;
 	unsigned int saved_min;
 };
+
+extern DEFINE_PER_CPU(struct boost_policy, boost_info);
 #endif /* CONFIG_CPU_INPUT_BOOST */
 
 #endif /* _LINUX_CPU_INPUT_BOOST_H */

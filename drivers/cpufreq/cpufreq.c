@@ -34,7 +34,6 @@
 
 #if defined(CONFIG_CPU_INPUT_BOOST) && defined(CONFIG_HOTPLUG_CPU)
 #include <linux/cpu_input_boost.h>
-extern struct boost_policy cpu_boost_policy[CONFIG_NR_CPUS];
 #endif
 
 /**
@@ -783,6 +782,9 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 	unsigned int j;
 #ifdef CONFIG_HOTPLUG_CPU
 	struct cpufreq_governor *gov;
+#ifdef CONFIG_CPU_INPUT_BOOST
+	struct boost_policy *b = &per_cpu(boost_info, cpu);
+#endif
 
 	gov = __find_governor(per_cpu(cpufreq_policy_save, cpu).gov);
 	if (gov) {
@@ -800,10 +802,10 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 	}
 
 #ifdef CONFIG_CPU_INPUT_BOOST
-	if (cpu_boost_policy[cpu].boost_freq)
-		policy->min = cpu_boost_policy[cpu].boost_freq;
-	else if (cpu_boost_policy[cpu].saved_min)
-		policy->min = cpu_boost_policy[cpu].saved_min;
+	if (b->boost_freq)
+		policy->min = b->boost_freq;
+	else if (b->saved_min)
+		policy->min = b->saved_min;
 	policy->user_policy.min = policy->min;
 #endif
 
@@ -1124,6 +1126,9 @@ static int __cpufreq_remove_dev(struct sys_device *sys_dev)
 #ifdef CONFIG_SMP
 	struct sys_device *cpu_sys_dev;
 	unsigned int j;
+#ifdef CONFIG_CPU_INPUT_BOOST
+	struct boost_policy *b = &per_cpu(boost_info, cpu);
+#endif
 #endif
 
 	pr_debug("unregistering CPU %u\n", cpu);
@@ -1163,8 +1168,8 @@ static int __cpufreq_remove_dev(struct sys_device *sys_dev)
 	per_cpu(cpufreq_policy_save, cpu).min = data->min;
 	per_cpu(cpufreq_policy_save, cpu).max = data->max;
 #ifdef CONFIG_CPU_INPUT_BOOST
-	if (!cpu_boost_policy[cpu].cpu_boosted)
-		cpu_boost_policy[cpu].saved_min = data->min;
+	if (!b->cpu_boosted)
+		b->saved_min = data->min;
 #endif
 	pr_debug("Saving CPU%d policy min %d and max %d\n",
 			cpu, data->min, data->max);
