@@ -23,6 +23,7 @@ struct boost_policy {
 	unsigned int boost_ms;
 	unsigned int cpu_boosted;
 	unsigned int saved_min;
+	unsigned int saved_max;
 };
 
 extern DEFINE_PER_CPU(struct boost_policy, boost_info);

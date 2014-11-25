@@ -96,7 +96,8 @@ static void set_new_minfreq(unsigned int minfreq, unsigned int cpu)
 			cpufreq_cpu_put(policy);
 			cpufreq_update_policy(cpu);
 		}
-	}
+	} else if (b->saved_max && (minfreq > b->saved_max))
+		minfreq = b->saved_max;
 	b->boost_freq = minfreq;
 }
 

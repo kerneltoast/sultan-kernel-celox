@@ -1170,6 +1170,7 @@ static int __cpufreq_remove_dev(struct sys_device *sys_dev)
 #ifdef CONFIG_CPU_INPUT_BOOST
 	if (!b->cpu_boosted)
 		b->saved_min = data->min;
+	b->saved_max = data->max;
 #endif
 	pr_debug("Saving CPU%d policy min %d and max %d\n",
 			cpu, data->min, data->max);
