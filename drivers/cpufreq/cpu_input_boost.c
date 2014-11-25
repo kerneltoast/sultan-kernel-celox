@@ -58,7 +58,8 @@ static void cpu_boost_timeout(unsigned int freq, unsigned int duration_ms)
 			if (b->cpu_boosted) {
 				if (in_irq())
 					return;
-				cancel_delayed_work(&boost_work);
+				if (cpu == (CONFIG_NR_CPUS - 1))
+					cancel_delayed_work(&boost_work);
 				b->cpu_boosted = OVERRIDE;
 			}
 			b->boost_freq = freq;
@@ -163,10 +164,11 @@ static void cpu_boost_early_suspend(struct early_suspend *handler)
 
 	suspended = true;
 
+	if (!in_irq())
+		cancel_delayed_work(&boost_work);
+
 	for_each_possible_cpu(cpu) {
 		b = &per_cpu(boost_info, cpu);
-		if (!in_irq())
-			cancel_delayed_work(&boost_work);
 		if (b->cpu_boosted)
 			restore_orig_minfreq(cpu);
 	}
