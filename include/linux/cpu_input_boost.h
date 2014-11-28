@@ -19,11 +19,14 @@
 
 #ifdef CONFIG_CPU_INPUT_BOOST
 struct boost_policy {
+	bool cpu_boosted;
 	unsigned int boost_freq;
 	unsigned int boost_ms;
-	unsigned int cpu_boosted;
+	unsigned int cpu;
 	unsigned int saved_min;
 	unsigned int saved_max;
+	struct work_struct boost_work;
+	struct delayed_work restore_work;
 };
 
 extern DEFINE_PER_CPU(struct boost_policy, boost_info);

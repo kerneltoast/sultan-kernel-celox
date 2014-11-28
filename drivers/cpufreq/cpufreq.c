@@ -802,7 +802,7 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 	}
 
 #ifdef CONFIG_CPU_INPUT_BOOST
-	if (b->boost_freq)
+	if (b->cpu_boosted)
 		policy->min = b->boost_freq;
 	else if (b->saved_min)
 		policy->min = b->saved_min;
