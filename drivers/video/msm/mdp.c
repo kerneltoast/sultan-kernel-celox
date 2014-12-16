@@ -117,7 +117,6 @@ static struct workqueue_struct *mdp_pipe_ctrl_wq; /* mdp mdp pipe ctrl wq */
 static struct delayed_work mdp_pipe_ctrl_worker;
 
 static boolean mdp_suspended = FALSE;
-static boolean mdp_is_asleep = FALSE;
 ulong mdp4_display_intf;
 DEFINE_MUTEX(mdp_suspend_mutex);
 
@@ -2402,7 +2401,6 @@ static int mdp_off(struct platform_device *pdev)
 #ifdef CONFIG_MSM_BUS_SCALING
 	mdp_bus_scale_update_request(0, 0, 0, 0);
 #endif
-	mdp_is_asleep = TRUE;
 	pr_debug("%s:-\n", __func__);
 	return ret;
 }
@@ -2427,11 +2425,6 @@ static int mdp_on(struct platform_device *pdev)
 	int ret = 0;
 	struct msm_fb_data_type *mfd;
 	int i;
-
-	usleep(5 * 1000);
-	if (mdp_is_asleep)
-		return 1;
-
 	mfd = platform_get_drvdata(pdev);
 
 	pr_debug("%s:+\n", __func__);
@@ -3498,78 +3491,11 @@ static int mdp_register_driver(void)
 	return platform_driver_register(&mdp_driver);
 }
 
-static void mdp_input_event(struct input_handle *handle, unsigned int type,
-		unsigned int code, int value)
-{
-	if (mdp_is_asleep && code == KEY_POWER)
-		mdp_is_asleep = FALSE;
-}
-
-static int mdp_input_connect(struct input_handler *handler,
-		struct input_dev *dev, const struct input_device_id *id)
-{
-	struct input_handle *handle;
-	int error;
-
-	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
-	if (!handle)
-		return -ENOMEM;
-
-	handle->dev = dev;
-	handle->handler = handler;
-	handle->name = "mdp_pwr";
-
-	error = input_register_handle(handle);
-	if (error)
-		goto err2;
-
-	error = input_open_device(handle);
-	if (error)
-		goto err1;
-
-	return 0;
-err1:
-	input_unregister_handle(handle);
-err2:
-	kfree(handle);
-	return error;
-}
-
-static void mdp_input_disconnect(struct input_handle *handle)
-{
-	input_close_device(handle);
-	input_unregister_handle(handle);
-	kfree(handle);
-}
-
-static const struct input_device_id mdp_ids[] = {
-	/* keypad */
-	{
-		.flags = INPUT_DEVICE_ID_MATCH_EVBIT,
-		.evbit = { BIT_MASK(EV_KEY) },
-	},
-	{ },
-};
-
-static struct input_handler mdp_input_handler = {
-	.event		= mdp_input_event,
-	.connect	= mdp_input_connect,
-	.disconnect	= mdp_input_disconnect,
-	.name		= "mdp_input",
-	.id_table	= mdp_ids,
-};
-
 static int __init mdp_driver_init(void)
 {
 	int ret;
 
 	mdp_drv_init();
-
-	ret = input_register_handler(&mdp_input_handler);
-	if (ret) {
-		printk(KERN_ERR "Failed to register mdp input handler!\n");
-		return ret;
-	}
 
 	ret = mdp_register_driver();
 	if (ret) {
