@@ -692,12 +692,20 @@ static int msm_fb_resume_sub(struct msm_fb_data_type *mfd)
 		if (mfd->panel_driver_on == FALSE)
 			msm_fb_blank_sub(FB_BLANK_POWERDOWN, mfd->fbi,
 				      mfd->op_enable);
+#ifndef CONFIG_HAS_EARLYSUSPEND
 		ret =
 		     msm_fb_blank_sub(FB_BLANK_UNBLANK, mfd->fbi,
 				      mfd->op_enable);
 		if (ret)
 			MSM_FB_INFO("msm_fb_resume: can't turn on display!\n");
+#endif
 	}
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	ret = msm_fb_blank_sub(FB_BLANK_UNBLANK, mfd->fbi, mfd->op_enable);
+	if (ret)
+		MSM_FB_INFO("msm_fb_resume: can't turn on display!\n");
+#endif
 
 	mfd->suspend.op_suspend = false;
 
@@ -1151,6 +1159,11 @@ static int msm_fb_blank(int blank_mode, struct fb_info *info)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	if (blank_mode == FB_BLANK_UNBLANK)
+		return 1;
+#endif
+
 	if (blank_mode == FB_BLANK_POWERDOWN) {
 		struct fb_event event;
 		event.info = info;
@@ -1159,6 +1172,7 @@ static int msm_fb_blank(int blank_mode, struct fb_info *info)
 	}
 	msm_fb_pan_idle(mfd);
 	if (mfd->op_enable == 0) {
+#ifndef CONFIG_HAS_EARLYSUSPEND
 		if (blank_mode == FB_BLANK_UNBLANK) {
 			mfd->suspend.panel_power_on = TRUE;
 			/* if unblank is called when system is in suspend,
@@ -1169,6 +1183,7 @@ static int msm_fb_blank(int blank_mode, struct fb_info *info)
 			}
 		}
 		else
+#endif
 			mfd->suspend.panel_power_on = FALSE;
 	}
 	return msm_fb_blank_sub(blank_mode, info, mfd->op_enable);
