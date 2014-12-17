@@ -131,6 +131,7 @@ struct ld9040 {
 	struct lcd_device		*ld;
 	struct backlight_device		*bd;
 	struct lcd_platform_data	*lcd_pd;
+	struct early_suspend    early_suspend;
 
 #if defined(SMART_DIMMING) // smartdimming
 	boolean	isSmartDimming;
@@ -2168,6 +2169,72 @@ static DEVICE_ATTR(auto_brightness, 0664,
 
 ///////////////////////
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void ld9040_early_suspend(struct early_suspend *h) {
+
+	int i;
+
+	mutex_lock(&lcd.lock);
+	DPRINT("panel off at early_suspend (%d,%d,%d)\n",
+			ld9040_state.disp_initialized,
+			ld9040_state.disp_powered_up,
+			ld9040_state.display_on);
+
+	if (ld9040_state.disp_powered_up && ld9040_state.display_on) {
+		for (i = 0; i < POWER_OFF_SEQ; i++)
+			setting_table_write(&power_off_sequence[i]);
+
+		lcdc_config_gpios(0);
+		ld9040_state.display_on = FALSE;
+		ld9040_state.disp_initialized = FALSE;
+		ld9040_disp_powerdown();
+	}
+	mutex_unlock(&lcd.lock);
+
+	return;
+}
+
+static void ld9040_late_resume(struct early_suspend *h) {
+
+	static struct regulator *l3 = NULL;
+	static struct regulator *l19 = NULL;
+	int l3_enabled, l19_enabled;
+
+	// get regulators
+	l3 = regulator_get(NULL, "8058_l3");
+	l19 = regulator_get(NULL, "8058_l19");
+
+	// get status of regulators
+	l3_enabled = regulator_is_enabled(l3);
+	l19_enabled = regulator_is_enabled(l19);
+
+	DPRINT("panel on at late_resume (%d,%d,%d)\n",
+		ld9040_state.disp_initialized,
+		ld9040_state.disp_powered_up,
+		ld9040_state.display_on);
+
+	// make sure lcd regulators are enabled before doing
+	// LCD initialization
+	if (l3_enabled && l19_enabled) {
+
+		mutex_lock(&lcd.lock);
+		if (!ld9040_state.disp_initialized) {
+			/* Configure reset GPIO that drives DAC */
+			lcdc_config_gpios(1);
+			spi_init();	/* LCD needs SPI */
+			ld9040_disp_powerup();
+			ld9040_disp_on();
+			ld9040_state.disp_initialized = TRUE;
+			//flag_gammaupdate = 0;
+		}
+		mutex_unlock(&lcd.lock);
+	}
+
+	return;
+}
+#endif
+
+
 static int __devinit ld9040_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2252,6 +2319,13 @@ static int __devinit ld9040_probe(struct platform_device *pdev)
         if (ret < 0)
           DPRINT("auto_brightness failed to add sysfs entries\n");
       }
+#endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	lcd.early_suspend.suspend = ld9040_early_suspend;
+	lcd.early_suspend.resume = ld9040_late_resume;
+	lcd.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
+	register_early_suspend(&lcd.early_suspend);
 #endif
 
 	return 0;
