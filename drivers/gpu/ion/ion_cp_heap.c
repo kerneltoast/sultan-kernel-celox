@@ -107,6 +107,10 @@ enum {
 	HEAP_PROTECTED = 1,
 };
 
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+struct heap_info heap_mem_info[MSM_ION_HIGHEST_HEAP_ID];
+#endif
+
 static int ion_cp_protect_mem(unsigned int phy_base, unsigned int size,
 			unsigned int permission_type, int version,
 			void *data);
@@ -274,7 +278,6 @@ ion_phys_addr_t ion_cp_allocate(struct ion_heap *heap,
 			return ION_RESERVED_ALLOCATE_FAIL;
 		}
 
-	cp_heap->allocated_bytes += size;
 	mutex_unlock(&cp_heap->lock);
 
 	offset = gen_pool_alloc_aligned(cp_heap->pool,
@@ -282,15 +285,38 @@ ion_phys_addr_t ion_cp_allocate(struct ion_heap *heap,
 
 	if (!offset) {
 		mutex_lock(&cp_heap->lock);
-		cp_heap->allocated_bytes -= size;
 		if ((cp_heap->total_size -
-		     cp_heap->allocated_bytes) >= size)
+		     cp_heap->allocated_bytes) >= size) {
 			pr_debug("%s: heap %s has enough memory (%lx) but"
 				" the allocation of size %lx still failed."
 				" Memory is probably fragmented.\n",
 				__func__, heap->name,
 				cp_heap->total_size -
 				cp_heap->allocated_bytes, size);
+		} else {
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+			unsigned int i;
+#endif
+
+			printk("%s: heap %s doesn't have enough memory (%lx), the allocation of size %lx failed\n",
+				__func__, heap->name,
+				cp_heap->total_size -
+				cp_heap->allocated_bytes, size);
+
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+			for (i = 0; i < MSM_ION_HIGHEST_HEAP_ID; ++i) {
+				if (heap_mem_info[i].id) {
+					printk("ion_mem_info: heap %s (id %d) currently has %lx bytes allocated\n",
+						heap_mem_info[i].name, heap_mem_info[i].id,
+						heap_mem_info[i].allocated_bytes);
+					printk("ion_mem_info: %s heap's max allocated bytes was %lx\n",
+						heap_mem_info[i].name,
+						heap_mem_info[i].max_allocated_bytes);
+				}
+			}
+			BUG_ON(1);
+#endif
+		}
 		if (!cp_heap->allocated_bytes &&
 			cp_heap->heap_protected == HEAP_NOT_PROTECTED)
 			ion_on_last_free(heap);
@@ -298,6 +324,17 @@ ion_phys_addr_t ion_cp_allocate(struct ion_heap *heap,
 
 		return ION_CP_ALLOCATE_FAIL;
 	}
+
+	cp_heap->allocated_bytes += size;
+
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+	strncpy(heap_mem_info[heap->id].name, heap->name, sizeof(heap->name));
+	heap_mem_info[heap->id].id = heap->id;
+	heap_mem_info[heap->id].allocated_bytes = cp_heap->allocated_bytes;
+
+	if (heap_mem_info[heap->id].allocated_bytes > heap_mem_info[heap->id].max_allocated_bytes)
+		heap_mem_info[heap->id].max_allocated_bytes = heap_mem_info[heap->id].allocated_bytes;
+#endif
 
 	return offset;
 }

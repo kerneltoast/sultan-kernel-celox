@@ -32,6 +32,25 @@ enum {
 	DI_MAX,
 };
 
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+/**
+ * struct heap_inf - stores memory usage statistics for CP & CO heaps
+ * @id:			 id of heap
+ * @name:		 name of heap, used for debugging
+ * @allocated_bytes:	 current amount of bytes allocated to the heap
+ * @max_allocated_bytes: the most amount of bytes the heap ever had
+ * 			 allocated to it
+ */
+struct heap_info {
+	int id;
+	char name[100];
+	unsigned long allocated_bytes;
+	unsigned long max_allocated_bytes;
+};
+
+#define MSM_ION_HIGHEST_HEAP_ID 31
+#endif
+
 /**
  * struct ion_iommu_map - represents a mapping of an ion buffer to an iommu
  * @iova_addr - iommu virtual address

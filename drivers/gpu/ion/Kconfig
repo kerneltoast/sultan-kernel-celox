@@ -16,3 +16,11 @@ config ION_MSM
 	depends on ARCH_MSM && ION
 	help
 	  Choose this option if you wish to use ion on an MSM target.
+
+config MSM_ION_MEMTRACK_DEBUG
+	tristate "Ion mem usage debugging"
+	depends on ION_MSM
+	help
+	  Causes a kernel panic and prints Ion memory heap usage statistics
+	  for all heaps when an Ion heap (content-protect or carveout) runs
+	  out of memory. This should not be used in production builds.
