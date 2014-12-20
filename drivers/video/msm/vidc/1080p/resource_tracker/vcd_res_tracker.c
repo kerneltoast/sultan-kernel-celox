@@ -69,7 +69,7 @@ static void *res_trk_pmem_map
 	if (res_trk_get_enable_ion() && addr->alloc_handle) {
 		kernel_vaddr = (unsigned long *) ion_map_kernel(
 					ddl_context->video_ion_client,
-					addr->alloc_handle, res_trk_get_ion_flags());
+					addr->alloc_handle);
 		if (IS_ERR_OR_NULL(kernel_vaddr)) {
 			DDL_MSG_ERROR("%s():DDL ION client map failed\n",
 						 __func__);
@@ -215,7 +215,8 @@ static int res_trk_pmem_alloc
 			addr->alloc_handle = ion_alloc(
 					ddl_context->video_ion_client,
 					 alloc_size, SZ_4K,
-					res_trk_get_mem_type());
+					res_trk_get_mem_type(),
+					res_trk_get_ion_flags());
 			if (IS_ERR_OR_NULL(addr->alloc_handle)) {
 				DDL_MSG_ERROR("%s() :DDL ION alloc failed\n",
 						__func__);

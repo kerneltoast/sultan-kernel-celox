@@ -553,7 +553,7 @@ static int __tzcom_update_with_phy_addr(
 	for (i = 0; i < MAX_ION_FD; i++) {
 		if (req->ifd_data[i].fd != 0) {
 			/* Get the handle of the shared fd */
-			ihandle = ion_import_fd(ion_clnt, req->ifd_data[i].fd);
+			ihandle = ion_import_dma_buf(ion_clnt, req->ifd_data[i].fd);
 			if (ihandle == NULL) {
 				PERR("Ion client can't retrieve the handle\n");
 				return -ENOMEM;
