@@ -45,6 +45,10 @@ struct ion_carveout_heap {
 	unsigned int has_outer_cache;
 };
 
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+extern struct heap_info heap_mem_info[MSM_ION_HIGHEST_HEAP_ID];
+#endif
+
 ion_phys_addr_t ion_carveout_allocate(struct ion_heap *heap,
 				      unsigned long size,
 				      unsigned long align)
@@ -56,17 +60,51 @@ ion_phys_addr_t ion_carveout_allocate(struct ion_heap *heap,
 
 	if (!offset) {
 		if ((carveout_heap->total_size -
-		      carveout_heap->allocated_bytes) >= size)
+		      carveout_heap->allocated_bytes) >= size) {
 			pr_debug("%s: heap %s has enough memory (%lx) but"
 				" the allocation of size %lx still failed."
 				" Memory is probably fragmented.",
 				__func__, heap->name,
 				carveout_heap->total_size -
 				carveout_heap->allocated_bytes, size);
+		} else {
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+			unsigned int i;
+#endif
+
+			pr_info("%s: heap %s doesn't have enough memory (%lx), the allocation of size %lx failed\n",
+				__func__, heap->name,
+				carveout_heap->total_size -
+				carveout_heap->allocated_bytes, size);
+
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+			for (i = 0; i < MSM_ION_HIGHEST_HEAP_ID; ++i) {
+				if (heap_mem_info[i].id) {
+					printk("ion_mem_info: heap %s (id %d) currently has %lx bytes allocated\n",
+						heap_mem_info[i].name, heap_mem_info[i].id,
+						heap_mem_info[i].allocated_bytes);
+					printk("ion_mem_info: %s heap's max allocated bytes was %lx\n",
+						heap_mem_info[i].name,
+						heap_mem_info[i].max_allocated_bytes);
+				}
+			}
+			BUG_ON(1);
+#endif
+		}
 		return ION_CARVEOUT_ALLOCATE_FAIL;
 	}
 
 	carveout_heap->allocated_bytes += size;
+
+#ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
+	strncpy(heap_mem_info[heap->id].name, heap->name, sizeof(heap->name));
+	heap_mem_info[heap->id].id = heap->id;
+	heap_mem_info[heap->id].allocated_bytes = carveout_heap->allocated_bytes;
+
+	if (heap_mem_info[heap->id].allocated_bytes > heap_mem_info[heap->id].max_allocated_bytes)
+		heap_mem_info[heap->id].max_allocated_bytes = heap_mem_info[heap->id].allocated_bytes;
+#endif
+
 	return offset;
 }
 
