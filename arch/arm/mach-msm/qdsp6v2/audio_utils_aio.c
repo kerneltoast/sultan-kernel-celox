@@ -824,7 +824,7 @@ static int audio_aio_ion_add(struct q6audio_aio *audio,
 		goto client_error;
 	}
 
-	handle = ion_import_fd(client, info->fd);
+	handle = ion_import_dma_buf(client, info->fd);
 	if (IS_ERR_OR_NULL(handle)) {
 		pr_err("%s: could not get handle of the given fd\n", __func__);
 		goto import_error;
@@ -836,7 +836,7 @@ static int audio_aio_ion_add(struct q6audio_aio *audio,
 		goto flag_error;
 	}
 
-	temp_ptr = ion_map_kernel(client, handle, ionflag);
+	temp_ptr = ion_map_kernel(client, handle);
 	if (IS_ERR_OR_NULL(temp_ptr)) {
 		pr_err("%s: could not get virtual address\n", __func__);
 		goto map_error;
