@@ -4092,16 +4092,17 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_RAM_CONSOLE_BASE    0x77800000
 #define MSM_RAM_CONSOLE_SIZE    SZ_1M
 
-#define MSM_ION_SF_SIZE		0x3700000
-#define MSM_ION_CAMERA_SIZE	0x1000000
+#define MSM_ION_SF_SIZE		0x2B00000
+#define MSM_ION_CAMERA_SIZE	0xC00000
 #define MSM_ION_MM_FW_SIZE	0x200000
-#define MSM_ION_MM_SIZE		0x3D00000
-#define MSM_ION_MFC_SIZE	0x100000
+#define MSM_ION_MM_SIZE		0x3800000
+#define MSM_ION_MFC_SIZE	SZ_8K
 #define MSM_ION_AUDIO_SIZE	0x4CF000
 
 #define MSM_ION_MM_FW_BASE	MSM_SMI_BASE
 #define MSM_ION_MM_BASE		0x38200000
-#define MSM_ION_MFC_BASE	0x3BF00000
+#define MSM_ION_MFC_BASE	0x3BA00000
+#define MSM_FB_BASE		0x3BB00000
 
 static struct resource msm_fb_resources[] = {
 	{
@@ -5013,16 +5014,13 @@ static struct platform_device mipi_dsi_s6e8aa0_hd720_panel_device = {
 
 static void __init msm8x60_allocate_memory_regions(void)
 {
-	void *addr;
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-
-	addr = alloc_bootmem_align(size, 0x1000);
-	msm_fb_resources[0].start = __pa(addr);
+	msm_fb_resources[0].start = MSM_FB_BASE;
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
-		size, addr, __pa(addr));
+	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
+		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
 }
 
 void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
