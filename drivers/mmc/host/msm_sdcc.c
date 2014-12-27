@@ -5169,12 +5169,6 @@ msmsdcc_runtime_suspend(struct device *dev)
 		rc = 0;
 		goto out;
 	}
-
-	if (host->pdev_id == 4) {
-		host->mmc->pm_flags |= MMC_PM_KEEP_POWER;
-		printk(KERN_INFO "%s: Enter WIFI suspend\n", __func__);
-	}
-
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
 
 	if (mmc) {
