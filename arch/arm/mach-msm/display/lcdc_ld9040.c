@@ -75,7 +75,7 @@
 #if defined(SMART_DIMMING) // smartdimming
 #include "smart_dimming_ea8868.h"
 #endif
-#define LCDC_DEBUG
+//#define LCDC_DEBUG
 
 //#define LCDC_19GAMMA_ENABLE
 
