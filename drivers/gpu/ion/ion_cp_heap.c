@@ -328,7 +328,7 @@ ion_phys_addr_t ion_cp_allocate(struct ion_heap *heap,
 	cp_heap->allocated_bytes += size;
 
 #ifdef CONFIG_MSM_ION_MEMTRACK_DEBUG
-	strncpy(heap_mem_info[heap->id].name, heap->name, sizeof(heap->name));
+	strncpy(heap_mem_info[heap->id].name, heap->name, sizeof(heap_mem_info[heap->id].name));
 	heap_mem_info[heap->id].id = heap->id;
 	heap_mem_info[heap->id].allocated_bytes = cp_heap->allocated_bytes;
 
