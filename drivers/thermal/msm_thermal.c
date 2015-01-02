@@ -158,8 +158,7 @@ static int cpu_throttle(struct notifier_block *nb, unsigned long val, void *data
 		t->saved_max = policy->max;
 		break;
 	case UNTHROTTLE:
-		if (policy->max < t->saved_max)
-			policy->max = t->saved_max;
+		policy->max = t->saved_max;
 		t->cpu_throttle = NO_THROTTLE;
 		break;
 	case LOW_THROTTLE:
