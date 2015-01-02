@@ -44,6 +44,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/i2c/bq27520.h>
 #include <linux/memblock.h>
+#include <linux/msm_tsens.h>
 
 #ifdef CONFIG_TOUCHSCREEN_MELFAS
 #define TOUCHSCREEN_IRQ 		125  
@@ -7975,9 +7976,11 @@ static struct platform_device bcm4330_bluetooth_device = {
 };
 #endif
 
-static struct platform_device msm_tsens_device = {
-	.name   = "tsens-tm",
-	.id = -1,
+static struct tsens_platform_data msm_tsens_pdata  = {
+		.slope 			= {702, 702, 702, 702, 702},
+		.tsens_factor		= 1000,
+		.hw_type		= MSM_8660,
+		.tsens_num_sensor	= 6,
 };
 
 #ifdef CONFIG_VP_A2220
@@ -9426,7 +9429,6 @@ static struct platform_device *surf_devices[] __initdata = {
 	&msm_device_rng,
 #endif
 
-	&msm_tsens_device,
 	&msm_rpm_device,
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
@@ -16475,6 +16477,8 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 #endif
 
 	pmic_reset_irq = PM8058_IRQ_BASE + PM8058_RESOUT_IRQ;
+
+	msm_tsens_early_init(&msm_tsens_pdata);
 
 	/*
 	 * Initialize RPM first as other drivers and devices may need
