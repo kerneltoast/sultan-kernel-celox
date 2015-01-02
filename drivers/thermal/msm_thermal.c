@@ -1,6 +1,6 @@
 /* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
- * Copyright (c) 2014, Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2014-2015, Sultanxda <sultanxda@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -402,4 +402,4 @@ static int __init msm_thermal_init(void)
 fail:
 	return ret;
 }
-late_initcall(msm_thermal_init);
+fs_initcall(msm_thermal_init);
