@@ -107,8 +107,7 @@ static int cpu_do_boost(struct notifier_block *nb, unsigned long val, void *data
 
 	switch (b->cpu_boost) {
 	case NO_BOOST:
-		if (likely(policy->min != b->boost_freq))
-			b->saved_min = policy->min;
+		b->saved_min = policy->min;
 		break;
 	case UNBOOST:
 		policy->min = b->saved_min;
