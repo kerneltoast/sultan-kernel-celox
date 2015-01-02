@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2014-2015, Sultanxda <sultanxda@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -80,9 +80,9 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	struct boost_policy *b = container_of(work, struct boost_policy,
 						boost_work);
 
-	if (b->cpu_boost)
-		cancel_delayed_work_sync(&b->restore_work);
-	/* boost must be set from within work to prevent deadlock */
+	cancel_delayed_work_sync(&b->restore_work);
+
+	/* boost must be set from within work context to prevent deadlock */
 	set_boost(b, BOOST);
 
 	queue_delayed_work(boost_wq, &b->restore_work,
@@ -107,7 +107,8 @@ static int cpu_do_boost(struct notifier_block *nb, unsigned long val, void *data
 
 	switch (b->cpu_boost) {
 	case NO_BOOST:
-		b->saved_min = policy->min;
+		if (likely(policy->min != b->boost_freq))
+			b->saved_min = policy->min;
 		break;
 	case UNBOOST:
 		policy->min = b->saved_min;
@@ -133,10 +134,10 @@ static void cpu_boost_early_suspend(struct early_suspend *handler)
 	unsigned int cpu;
 
 	suspended = true;
+
 	for_each_possible_cpu(cpu) {
 		b = &per_cpu(boost_info, cpu);
-		cancel_delayed_work_sync(&b->restore_work);
-		if (b->cpu_boost != NO_BOOST)
+		if (cancel_delayed_work_sync(&b->restore_work))
 			set_boost(b, UNBOOST);
 	}
 }
@@ -155,6 +156,8 @@ static struct early_suspend __refdata cpu_boost_early_suspend_handler = {
 static void cpu_boost_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
+	struct boost_policy *b;
+	unsigned int cpu;
 	u64 now;
 
 	if (suspended || !input_boost_freq || !input_boost_ms)
@@ -163,6 +166,13 @@ static void cpu_boost_input_event(struct input_handle *handle, unsigned int type
 	now = ktime_to_us(ktime_get());
 	if (now - last_input_time < MIN_INPUT_INTERVAL)
 		return;
+
+	/* exit if boost is pending for any cpu */
+	for_each_possible_cpu(cpu) {
+		b = &per_cpu(boost_info, cpu);
+		if (work_pending(&b->boost_work))
+			return;
+	}
 
 	boost_all_cpus(input_boost_freq, input_boost_ms);
 	last_input_time = ktime_to_us(ktime_get());
