@@ -30,6 +30,7 @@ enum {
 	LOW_THROTTLE,
 	MID_THROTTLE,
 	HIGH_THROTTLE,
+	THROTTLED,
 };
 
 struct throttle_vars {
@@ -79,6 +80,7 @@ static struct msm_thermal_tuners {
 
 static void msm_thermal_main(struct work_struct *work)
 {
+	struct cpufreq_policy *policy;
 	struct tsens_device tsens_dev;
 	struct throttle_vars *t;
 	unsigned long temp;
@@ -99,7 +101,8 @@ static void msm_thermal_main(struct work_struct *work)
 
 		/* low trip point */
 		if ((temp >= therm_conf.trip_low_thresh) &&
-		(temp < therm_conf.trip_mid_thresh) && !t->cpu_throttle) {
+		(temp < therm_conf.trip_mid_thresh) &&
+			(t->cpu_throttle == NO_THROTTLE)) {
 			pr_warn("Low trip point triggered for CPU%d! temp: %luC\n", cpu, temp);
 			t->throttle_freq = therm_conf.freq_low_thresh;
 			t->cpu_throttle = LOW_THROTTLE;
@@ -134,9 +137,37 @@ static void msm_thermal_main(struct work_struct *work)
 			t->throttle_freq = therm_conf.freq_mid_thresh;
 			t->cpu_throttle = MID_THROTTLE;
 		}
-		/* trigger cpufreq notifier */
-		if (cpu_online(cpu))
-			cpufreq_update_policy(cpu);
+		/*
+		 * CPUs that are online at the time a throttle/unthrottle request is
+		 * sent are throttled/unthrottled from here. After user_policy is
+		 * modified from here to throttle a CPU, the cpufreq notifier below
+		 * does not do anything for said throttled CPU in order to avoid
+		 * a user_policy vs. policy condition that causes the maxfreq to
+		 * be permanently stuck at the throttle freq if the user attempts to
+		 * modify the maxfreq (user_policy) while the CPU is throttled.
+		 */
+		if (cpu_online(cpu)) {
+			policy = cpufreq_cpu_get(cpu);
+			if (policy != NULL) {
+				switch (t->cpu_throttle) {
+				case UNTHROTTLE:
+					policy->user_policy.max = t->saved_max;
+					t->cpu_throttle = NO_THROTTLE;
+					break;
+				case LOW_THROTTLE:
+				case MID_THROTTLE:
+				case HIGH_THROTTLE:
+				case THROTTLED: /* Re-throttle online CPUs on every polling interval. */
+					if (policy->user_policy.min > t->throttle_freq)
+						policy->user_policy.min = policy->cpuinfo.min_freq;
+					policy->user_policy.max = t->throttle_freq;
+					t->cpu_throttle = THROTTLED;
+					break;
+				}
+				cpufreq_cpu_put(policy);
+				cpufreq_update_policy(cpu);
+			}
+		}
 	}
 	put_online_cpus();
 
@@ -153,6 +184,10 @@ static int cpu_throttle(struct notifier_block *nb, unsigned long val, void *data
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
+	/*
+	 * CPUs that were offline at the time a throttle/unthrottle request was
+	 * sent are throttled/unthrottled from here.
+	 */
 	switch (t->cpu_throttle) {
 	case NO_THROTTLE:
 		t->saved_max = policy->max;
