@@ -505,11 +505,6 @@ int wiphy_register(struct wiphy *wiphy)
 			   ETH_ALEN)))
 		return -EINVAL;
 
-	if (WARN_ON(wiphy->max_acl_mac_addrs &&
-		    (!(wiphy->flags & WIPHY_FLAG_HAVE_AP_SME) ||
-		     !rdev->ops->set_mac_acl)))
-		return -EINVAL;
-
 	if (wiphy->addresses)
 		memcpy(wiphy->perm_addr, wiphy->addresses[0].addr, ETH_ALEN);
 
@@ -591,7 +586,7 @@ int wiphy_register(struct wiphy *wiphy)
 	}
 
 	/* set up regulatory info */
-	regulatory_update(wiphy, NL80211_REGDOM_SET_BY_CORE);
+	wiphy_update_regulatory(wiphy, NL80211_REGDOM_SET_BY_CORE);
 
 	list_add_rcu(&rdev->list, &cfg80211_rdev_list);
 	cfg80211_rdev_list_generation++;
