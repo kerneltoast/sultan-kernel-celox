@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,18 +13,13 @@
 #ifndef __APR_H_
 #define __APR_H_
 
-#include <linux/mutex.h>
-
-enum apr_subsys_state {
-	APR_SUBSYS_DOWN,
-	APR_SUBSYS_UP,
-	APR_SUBSYS_LOADED,
-};
+#define APR_Q6_NOIMG   0
+#define APR_Q6_LOADING 1
+#define APR_Q6_LOADED  2
 
 struct apr_q6 {
 	void *pil;
-	atomic_t q6_state;
-	atomic_t modem_state;
+	uint32_t state;
 	struct mutex lock;
 };
 
@@ -92,7 +87,7 @@ struct apr_hdr {
 #define APR_SVC_SRD		0x7
 
 /* APR Port IDs */
-#define APR_MAX_PORTS		0x80
+#define APR_MAX_PORTS		0x40
 
 #define APR_NAME_MAX		0x40
 
@@ -143,12 +138,6 @@ struct apr_client {
 	struct apr_svc svc[APR_SVC_MAX];
 };
 
-int apr_load_adsp_image(void);
-struct apr_client *apr_get_client(int dest_id, int client_id);
-int apr_wait_for_device_up(int dest_id);
-int apr_get_svc(const char *svc_name, int dest_id, int *client_id,
-		int *svc_idx, int *svc_id);
-void apr_cb_func(void *buf, int len, void *priv);
 struct apr_svc *apr_register(char *dest, char *svc_name, apr_fn svc_fn,
 					uint32_t src_port, void *priv);
 inline int apr_fill_hdr(void *handle, uint32_t *buf, uint16_t src_port,
@@ -160,9 +149,4 @@ int apr_deregister(void *handle);
 void change_q6_state(int state);
 void q6audio_dsp_not_responding(void);
 void apr_reset(void *handle);
-enum apr_subsys_state apr_get_modem_state(void);
-void apr_set_modem_state(enum apr_subsys_state state);
-enum apr_subsys_state apr_get_q6_state(void);
-int apr_set_q6_state(enum apr_subsys_state state);
-void apr_set_subsys_state(void);
 #endif
