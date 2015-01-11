@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2009 Google, Inc.
- * Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -260,7 +260,6 @@ static long pcm_out_ioctl(struct file *file, unsigned int cmd,
 	case AUDIO_GET_CONFIG: {
 		struct msm_audio_config config;
 		pr_debug("%s: AUDIO_GET_CONFIG\n", __func__);
-		memset(&config, 0, sizeof(config));
 		config.buffer_size = pcm->buffer_size;
 		config.buffer_count = pcm->buffer_count;
 		config.sample_rate = pcm->sample_rate;
@@ -452,6 +451,7 @@ static int pcm_out_release(struct inode *inode, struct file *file)
 				__func__, pcm->ac->session);
 	if (pcm->ac)
 		pcm_out_disable(pcm);
+
 	msm_clear_session_id(pcm->ac->session);
 	auddev_unregister_evt_listner(AUDDEV_CLNT_DEC, pcm->ac->session);
 	q6asm_audio_client_free(pcm->ac);

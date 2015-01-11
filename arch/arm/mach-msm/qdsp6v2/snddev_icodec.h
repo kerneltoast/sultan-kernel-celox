@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,7 +13,7 @@
 #ifndef __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #define __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #include <linux/mfd/msm-adie-codec.h>
-#include <mach/qdsp6v2/audio_def.h>
+#include <mach/qdsp5v2/audio_def.h>
 #include <mach/pmic.h>
 
 struct snddev_icodec_data {

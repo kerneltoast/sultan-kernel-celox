@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -48,9 +48,6 @@ struct audio_dev_ctrl_state {
 static struct audio_dev_ctrl_state audio_dev_ctrl;
 struct event_listner event;
 
-static int voc_rx_freq = 0;
-static int voc_tx_freq = 0;
-
 struct session_freq {
 	int freq;
 	int evt;
@@ -71,7 +68,6 @@ struct audio_routing_info {
 	int tx_mute;
 	int rx_mute;
 	int voice_state;
-	int call_state;
 	struct mutex copp_list_mutex;
 	struct mutex adm_mutex;
 };
@@ -255,13 +251,6 @@ int msm_get_voice_state(void)
 	return routing_info.voice_state;
 }
 EXPORT_SYMBOL(msm_get_voice_state);
-
-int msm_get_call_state(void)
-{
-	pr_debug("call state %d\n", routing_info.call_state);
-	return routing_info.call_state;
-}
-EXPORT_SYMBOL(msm_get_call_state);
 
 int msm_set_voice_mute(int dir, int mute, u32 session_id)
 {
@@ -663,25 +652,11 @@ EXPORT_SYMBOL(msm_snddev_get_enc_freq);
 
 int msm_get_voc_freq(int *tx_freq, int *rx_freq)
 {
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
-	*tx_freq = (0 == voc_tx_freq ? routing_info.voice_tx_sample_rate
-				: voc_tx_freq);
-	*rx_freq = (0 == voc_rx_freq ? routing_info.voice_rx_sample_rate
-				: voc_rx_freq);
-#else
 	*tx_freq = routing_info.voice_tx_sample_rate;
 	*rx_freq = routing_info.voice_rx_sample_rate;
-#endif
 	return 0;
 }
 EXPORT_SYMBOL(msm_get_voc_freq);
-
-void msm_set_voc_freq(int tx_freq, int rx_freq)
-{
-	voc_tx_freq = tx_freq;
-	voc_rx_freq = rx_freq;
-}
-EXPORT_SYMBOL(msm_set_voc_freq);
 
 int msm_get_voc_route(u32 *rx_id, u32 *tx_id)
 {
@@ -1247,6 +1222,10 @@ static long audio_dev_ctrl_ioctl(struct file *file,
 	unsigned int cmd, unsigned long arg)
 {
 	int rc = 0;
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+	void __user *argp = (void __user *)arg;
+	int amr_state = 0;
+#endif
 	struct audio_dev_ctrl_state *dev_ctrl = file->private_data;
 
 	mutex_lock(&session_lock);
@@ -1277,7 +1256,21 @@ static long audio_dev_ctrl_ioctl(struct file *file,
 		break;
 
 	}
-
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+	case AUDIO_SET_AMR_WB:
+			if(copy_from_user(&amr_state, argp, sizeof(amr_state)))
+				return -EFAULT;
+			if(amr_state<0 || amr_state>1)
+				return -EFAULT;	
+			printk("[IJ] %s amr_state = %d\n", __func__, amr_state);
+			if(amr_state == VPCM_PATH_NARROWBAND)
+				rc = vpcm_start_modem_voice();
+			else if(amr_state ==VPCM_PATH_WIDEBAND)
+				rc = vpcm_stop_modem_voice();
+			if(rc<0)
+				printk("%s: AUDIO_SET_AMR_WB %d error %d\n", __func__, amr_state, rc);
+		break;
+#endif
 	case AUDIO_DISABLE_SND_DEVICE: {
 		struct msm_snddev_info *dev_info;
 		u32 dev_id;
@@ -1429,11 +1422,6 @@ void broadcast_event(u32 evt_id, u32 dev_id, u64 session_id)
 		}
 		clnt_id = callback->clnt_id;
 		memset(evt_payload, 0, sizeof(union auddev_evt_data));
-
-		if (evt_id == AUDDEV_EVT_START_VOICE)
-			routing_info.call_state = 1;
-		if (evt_id == AUDDEV_EVT_END_VOICE)
-			routing_info.call_state = 0;
 
 		if ((evt_id == AUDDEV_EVT_START_VOICE)
 			|| (evt_id == AUDDEV_EVT_END_VOICE)
@@ -1740,7 +1728,6 @@ static int __init audio_dev_ctrl_init(void)
 	audio_dev_ctrl.voice_tx_dev = NULL;
 	audio_dev_ctrl.voice_rx_dev = NULL;
 	routing_info.voice_state = VOICE_STATE_INVALID;
-	routing_info.call_state = 0;
 
 	mutex_init(&adm_tx_topology_tbl.lock);
 	mutex_init(&routing_info.copp_list_mutex);
