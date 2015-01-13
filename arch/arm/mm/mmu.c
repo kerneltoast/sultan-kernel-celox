@@ -768,7 +768,7 @@ static void * __initdata vmalloc_min = (void *)(VMALLOC_END - CONFIG_VMALLOC_RES
  */
 static int __init early_vmalloc(char *arg)
 {
-	unsigned long vmalloc_reserve = memparse(arg, NULL);
+	unsigned long vmalloc_reserve = CONFIG_VMALLOC_RESERVE;
 
 	if (vmalloc_reserve < SZ_16M) {
 		vmalloc_reserve = SZ_16M;
