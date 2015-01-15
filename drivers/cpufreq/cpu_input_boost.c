@@ -24,10 +24,8 @@
 #include <linux/slab.h>
 
 enum {
-	NO_BOOST = 0,
 	UNBOOST,
-	REQUEST_BOOST,
-	BOOSTED,
+	BOOST,
 };
 
 struct boost_policy {
@@ -35,7 +33,6 @@ struct boost_policy {
 	unsigned int boost_ms;
 	unsigned int cpu;
 	unsigned int cpu_boost;
-	unsigned int saved_min;
 	struct work_struct boost_work;
 	struct delayed_work restore_work;
 };
@@ -56,38 +53,10 @@ module_param(input_boost_ms, uint, 0644);
 
 static void set_boost(struct boost_policy *b, unsigned int boost)
 {
-	struct cpufreq_policy *policy;
-
-	/*
-	 * CPUs that are online at the time a boost/unboost request is
-	 * sent are boosted/unboosted from here. After user_policy is
-	 * modified from here to enable a boost, the cpufreq notifier below
-	 * does not do anything for said boosted CPU in order to avoid
-	 * a user_policy vs. policy condition that causes the minfreq to
-	 * be permanently stuck at the boost freq if the user attempts to
-	 * modify the minfreq (user_policy) during a boost.
-	 */
 	b->cpu_boost = boost;
 	get_online_cpus();
-	if (cpu_online(b->cpu)) {
-		policy = cpufreq_cpu_get(b->cpu);
-		if (policy != NULL) {
-			switch (boost) {
-			case UNBOOST:
-				policy->user_policy.min = b->saved_min;
-				b->cpu_boost = NO_BOOST;
-				break;
-			case REQUEST_BOOST:
-				if (b->boost_freq > policy->user_policy.max)
-					b->boost_freq = policy->user_policy.max;
-				policy->user_policy.min = b->boost_freq;
-				b->cpu_boost = BOOSTED;
-				break;
-			}
-			cpufreq_cpu_put(policy);
-			cpufreq_update_policy(b->cpu);
-		}
-	}
+	if (cpu_online(b->cpu))
+		cpufreq_update_policy(b->cpu);
 	put_online_cpus();
 }
 
@@ -112,7 +81,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	cancel_delayed_work_sync(&b->restore_work);
 
 	/* Boost must be set from within work context to prevent deadlock. */
-	set_boost(b, REQUEST_BOOST);
+	set_boost(b, BOOST);
 
 	queue_delayed_work(boost_wq, &b->restore_work,
 				msecs_to_jiffies(b->boost_ms));
@@ -134,19 +103,11 @@ static int cpu_do_boost(struct notifier_block *nb, unsigned long val, void *data
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
-	/*
-	 * CPUs that were offline at the time a boost/unboost request was
-	 * sent are boosted/unboosted from here.
-	 */
 	switch (b->cpu_boost) {
-	case NO_BOOST:
-		b->saved_min = policy->min;
-		break;
 	case UNBOOST:
-		policy->min = b->saved_min;
-		b->cpu_boost = NO_BOOST;
+		policy->min = policy->cpuinfo.min_freq;
 		break;
-	case REQUEST_BOOST:
+	case BOOST:
 		if (b->boost_freq > policy->max)
 			b->boost_freq = policy->max;
 		policy->min = b->boost_freq;
@@ -222,7 +183,7 @@ static int cpu_boost_input_connect(struct input_handler *handler,
 
 	handle->dev = dev;
 	handle->handler = handler;
-	handle->name = "cpufreq";
+	handle->name = "cpu_input_boost";
 
 	error = input_register_handle(handle);
 	if (error)
