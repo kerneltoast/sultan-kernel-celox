@@ -1,492 +1,234 @@
 /*
- * drivers/misc/bln.c
+ * drivers/input/misc/bln.c
  *
+ * Copyright (C) 2015, Sultanxda <sultanxda@gmail.com>
+ * Rewrote driver and core logic from scratch
+ *
+ * Based on the original BLN implementation by:
+ * Copyright 2011  Michael Richter (alias neldar)
+ * Copyright 2011  Adam Kent <adam@semicircular.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
-// Enable the pr_debug() prints
-#define DEBUG 1
+#define pr_fmt(fmt) "BLN: " fmt
 
-#include <linux/platform_device.h>
-#include <linux/init.h>
-#include <linux/earlysuspend.h>
 #include <linux/device.h>
+#include <linux/earlysuspend.h>
+#include <linux/kernel.h>
 #include <linux/miscdevice.h>
 #include <linux/bln.h>
-#include <linux/mutex.h>
-#include <linux/timer.h>
-#include <linux/wakelock.h>
 
-static bool bln_enabled = false;		/* bln available */
-static bool bln_ongoing = false;		/* notification currently active */
-static bool bln_led_state = false;
-static bool bln_blink_state = false;
-static bool bln_suspended = false;		/* is system suspended */
+enum {
+	BLN_OFF,
+	BLN_ON,
+};
 
-static uint32_t blink_on_msec = 500;
-static uint32_t blink_off_msec = 500;
-static uint32_t blink_start_time_sec = 0; // bln alert start time in seconds
-static uint32_t blink_timeout_sec = 600; // 10 minutes
-static struct mutex bln_mutex;
+struct bln_config {
+	unsigned int blink_control;
+	unsigned int enable;
+	unsigned int off_ms;
+	unsigned int on_ms;
+} bln_conf = {
+	.blink_control = 0,
+	.enable = 0,
+	.off_ms = 2000,
+	.on_ms = 500,
+};
 
 static struct bln_implementation *bln_imp = NULL;
-static struct wake_lock bln_wake_lock;
+static struct delayed_work bln_main_work;
 
-void bl_timer_callback(unsigned long data);
-static struct timer_list blink_timer =
-		TIMER_INITIALIZER(bl_timer_callback, 0, 0);
-static void blink_callback(struct work_struct *blink_work);
-static DECLARE_WORK(blink_work, blink_callback);
+static bool suspended;
 
-#define BACKLIGHTNOTIFICATION_VERSION 11
-
-static void bln_led_enable(bool enable)
+static void set_bln_blink(unsigned int bln_state)
 {
-	if (enable == 0 && !bln_led_state) {
-		pr_debug("%s: already off\n", __FUNCTION__);
-		return;
-	}
-
-	else if (enable == 1 && bln_led_state) {
-		pr_debug("%s: already on\n", __FUNCTION__);
-		return;
-	}
-
-	switch (enable) {
-
-		// LED off
-		case 0:
-
-			bln_led_state = false;
-			bln_imp->off();
-			pr_debug("%s: false\n", __FUNCTION__);
-			break;
-
-		// LED on
-		case 1:
-
-			bln_led_state = true;
-			bln_imp->on();
-			pr_debug("%s: true\n", __FUNCTION__);
-			break;
-	}
-
-}
-
-static void bln_blink_enable(bool enable)
-{
-	pr_debug("%s: %s\n", __FUNCTION__, enable ? "true" : "false");
-
-	if (enable == 0 && !bln_blink_state) {
-		pr_debug("%s: already disabled\n", __FUNCTION__);
-		return;
-	}
-
-	else if (enable == 1 && bln_blink_state && !bln_ongoing) {
-		pr_debug("%s: already enabled\n", __FUNCTION__);
-		return;
-	}
-
-	switch (enable) {
-
-		// disable blink
-		case 0:
-
-			bln_blink_state = false;
-			blink_start_time_sec = 0;
-
-			if (timer_pending(&blink_timer)) {
-				pr_debug("%s: deleting blink timer\n", __FUNCTION__);
-				del_timer_sync(&blink_timer);
+	switch (bln_state) {
+	case BLN_OFF:
+		if (bln_conf.blink_control) {
+			bln_conf.blink_control = BLN_OFF;
+			if (suspended) {
+				bln_imp->off();
+				bln_imp->disable();
 			}
-
-			if (wake_lock_active(&bln_wake_lock)) {
-				pr_debug("%s: unlocking wake lock\n", __FUNCTION__);
-				wake_unlock(&bln_wake_lock);
-			}
-
-			pr_debug("%s: disable complete\n", __FUNCTION__);
-			break;
-
-		// enable blink
-		case 1:
-
-			if (!timer_pending(&blink_timer) && !wake_lock_active(&bln_wake_lock)) {
-
-				bln_blink_state = true;
-				wake_lock(&bln_wake_lock);
-
-				blink_timer.expires = jiffies +
-					msecs_to_jiffies(blink_on_msec);
-
-				blink_start_time_sec = jiffies / HZ;
-
-				add_timer(&blink_timer);
-				pr_debug("%s: enable complete\n", __FUNCTION__);
-			}
-			break;
-	}
-
-	pr_debug("%s: end\n", __FUNCTION__);
-}
-
-static void bln_led_notification_enable(bool enable)
-{
-	pr_debug("%s: %s\n", __FUNCTION__, enable ? "true" : "false");
-
-	if (enable == 0 && !bln_ongoing) {
-		pr_debug("%s: already disabled\n", __FUNCTION__);
-		return;
-	}
-
-	else if (enable == 1 && !bln_enabled && bln_ongoing
-			&& !bln_suspended && !bln_blink_state) {
-		pr_debug("%s: already enabled\n", __FUNCTION__);
-		return;
-	}
-
-	switch (enable) {
-
-	// disable led notification
-	case 0:
-
-		bln_ongoing = false;
-		bln_blink_enable(false);
-		bln_led_enable(false);
-
-		if (bln_suspended)
-			bln_imp->disable();
-
-		pr_debug("%s: disable complete\n", __FUNCTION__);
+		}
 		break;
-
-	// enable led notification
-	case 1:
-
-		if (bln_imp->enable()) {
-
-			bln_ongoing = true;
-			bln_led_enable(true);
-			pr_debug("%s: enable complete\n", __FUNCTION__);
+	case BLN_ON:
+		if (!bln_conf.blink_control) {
+			bln_conf.blink_control = BLN_ON;
+			bln_imp->enable();
+			schedule_delayed_work(&bln_main_work, 0);
 		}
 		break;
 	}
+}
 
-	pr_debug("%s: end\n", __FUNCTION__);
+static void bln_main(struct work_struct *work)
+{
+	static bool blink;
+	int blink_ms;
+
+	switch (bln_conf.blink_control) {
+	case BLN_OFF:
+		blink = false;
+		break;
+	case BLN_ON:
+		if (suspended) {
+			if (blink) {
+				blink = false;
+				blink_ms = bln_conf.off_ms;
+				bln_imp->off();
+			} else {
+				blink = true;
+				blink_ms = bln_conf.on_ms;
+				bln_imp->on();
+			}
+			schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
+		}
+		break;
+	}
 }
 
 static void bln_early_suspend(struct early_suspend *h)
 {
-	pr_notice("[BLN] early suspend\n");
-	bln_suspended = true;
+	suspended = true;
 }
 
 static void bln_late_resume(struct early_suspend *h)
 {
-	pr_notice("[BLN] late resume\n");
-	mutex_lock(&bln_mutex);
-	bln_suspended = false;
-
-	// cancel bln led activity upon resume
-	if (bln_ongoing)
-		bln_led_notification_enable(false);
-
-	mutex_unlock(&bln_mutex);
+	suspended = false;
 }
 
-static struct early_suspend bln_suspend_data = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 5,
+static struct early_suspend bln_early_suspend_handler = {
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
 	.suspend = bln_early_suspend,
 	.resume = bln_late_resume,
-};
-
-static ssize_t enabled_status_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", bln_enabled);
-}
-
-static ssize_t enabled_status_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-
-	mutex_lock(&bln_mutex);
-
-	if(sscanf(buf, "%u\n", &data) == 1) {
-
-		pr_debug("%s: %u \n", __FUNCTION__, data);
-
-		if (data == 1) {
-			bln_enabled = true;
-			pr_debug("%s: bln support enabled\n", __FUNCTION__);
-		}
-
-		else if (data == 0) {
-			bln_enabled = false;
-			bln_led_notification_enable(false);
-			pr_debug("%s: bln support disabled\n", __FUNCTION__);
-		}
-
-		else
-			pr_err("%s: invalid input %u\n", __FUNCTION__,
-					data);
-	}
-
-	else
-		pr_err("%s: invalid input\n", __FUNCTION__);
-
-	mutex_unlock(&bln_mutex);
-
-	return size;
-}
-
-static ssize_t notification_led_status_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf,"%d\n", bln_ongoing);
-}
-
-static ssize_t notification_led_status_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-
-	mutex_lock(&bln_mutex);
-
-	if (sscanf(buf, "%u\n", &data) == 1) {
-
-		pr_debug("%s: %u\n", __FUNCTION__, data);
-
-		if (data == 1) {
-			bln_led_notification_enable(true);
-			pr_debug("%s: notification led enabled\n", __FUNCTION__);
-		}
-
-		else if (data == 0) {
-			bln_led_notification_enable(false);
-			pr_debug("%s: notification led disabled\n", __FUNCTION__);
-		}
-
-		else
-			pr_err("%s: wrong input %u\n", __FUNCTION__, data);
-	}
-
-	else
-		pr_err("%s: input error\n", __FUNCTION__);
-
-	mutex_unlock(&bln_mutex);
-
-	return size;
-}
-
-static ssize_t blink_interval_status_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf,"%u %u\n", blink_on_msec, blink_off_msec);
-}
-
-static ssize_t blink_interval_status_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int ms_on, ms_off;
-	int c;
-
-	mutex_lock(&bln_mutex);
-
-	c = sscanf(buf, "%u %u\n", &ms_on, &ms_off);
-
-	pr_debug("%s: ms_on:%u ms_off:%u \n", __FUNCTION__, ms_on, ms_off);
-
-	if (c == 1 || c == 2) {
-
-		blink_on_msec = ms_on;
-		blink_off_msec = (c == 2) ? ms_off : ms_on;
-	}
-
-	else
-		pr_err("%s: invalid input\n", __FUNCTION__);
-
-	mutex_unlock(&bln_mutex);
-
-	return size;
-}
-
-// TODO: start
-static ssize_t blink_timeout_status_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf,"%u\n", blink_timeout_sec);
-}
-
-static ssize_t blink_timeout_status_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-
-	mutex_lock(&bln_mutex);
-
-	if (sscanf(buf, "%u\n", &data) == 1) {
-
-		blink_timeout_sec = data;
-		pr_debug("%s: %u \n", __FUNCTION__, data);
-	}
-
-	else
-		pr_err("%s: invalid input\n", __FUNCTION__);
-
-	mutex_unlock(&bln_mutex);
-
-	return size;
-}
-// TODO: end
-
-static ssize_t blink_control_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", bln_blink_state);
-}
-
-static ssize_t blink_control_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-
-	mutex_lock(&bln_mutex);
-
-	if (sscanf(buf, "%u\n", &data) == 1) {
-
-		if (data == 1) {
-			bln_blink_enable(true);
-			pr_debug("%s: bln blink enabled\n", __FUNCTION__);
-		}
-
-		else if (data == 0) {
-			bln_blink_enable(false);
-			pr_debug("%s: bln blink disabled\n", __FUNCTION__);
-		}
-
-		else
-			pr_err("%s: input error %u\n", __FUNCTION__, data);
-	}
-
-	else
-		pr_err("%s: input error\n", __FUNCTION__);
-
-	mutex_unlock(&bln_mutex);
-
-	return size;
-}
-
-static ssize_t version_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", BACKLIGHTNOTIFICATION_VERSION);
-}
-
-static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO, blink_control_read,
-		blink_control_write);
-static DEVICE_ATTR(enabled, S_IRUGO | S_IWUGO,
-		enabled_status_read,
-		enabled_status_write);
-static DEVICE_ATTR(notification_led, S_IRUGO | S_IWUGO,
-		notification_led_status_read,
-		notification_led_status_write);
-static DEVICE_ATTR(blink_interval, S_IRUGO | S_IWUGO,
-		blink_interval_status_read,
-		blink_interval_status_write);
-static DEVICE_ATTR(blink_timeout, S_IRUGO | S_IWUGO,
-                blink_timeout_status_read,
-                blink_timeout_status_write);
-static DEVICE_ATTR(version, S_IRUGO , version_read, NULL);
-
-static struct attribute *bln_notification_attributes[] = {
-	&dev_attr_blink_control.attr,
-	&dev_attr_enabled.attr,
-	&dev_attr_notification_led.attr,
-	&dev_attr_blink_interval.attr,
-	&dev_attr_blink_timeout.attr,
-	&dev_attr_version.attr,
-	NULL
-};
-
-static struct attribute_group bln_notification_group = {
-	.attrs  = bln_notification_attributes,
-};
-
-static struct miscdevice bln_device = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "backlightnotification",
 };
 
 void register_bln_implementation(struct bln_implementation *imp)
 {
 	bln_imp = imp;
 }
-EXPORT_SYMBOL(register_bln_implementation);
 
-static void blink_callback(struct work_struct *blink_work)
+/**************************** SYSFS START ****************************/
+static ssize_t blink_control_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
 {
-	uint32_t elapsed_time_sec;
+	unsigned int data;
+	int ret= sscanf(buf, "%u", &data);
+	if (ret != 1)
+		return -EINVAL;
 
-	mutex_lock(&bln_mutex);
-
-	if (bln_led_state) {
-
-		elapsed_time_sec = (jiffies / HZ) - blink_start_time_sec;
-
-		if (elapsed_time_sec >= blink_timeout_sec) {
-
-			pr_notice("%s: notification led time out\n", __FUNCTION__);
-			bln_led_notification_enable(false);
-			goto unlock;
+	if (bln_conf.enable) {
+		if (bln_imp == NULL) {
+			pr_err("No BLN implementation found, BLN blink failed\n");
+			goto err;
 		}
 
-		bln_led_enable(false);
+		if (data)
+			set_bln_blink(BLN_ON);
+		else
+			set_bln_blink(BLN_OFF);
 	}
 
-	else
-		bln_led_enable(true);
-
-	unlock:
-	mutex_unlock(&bln_mutex);
+err:
+	return size;
 }
 
-void bl_timer_callback(unsigned long data)
+static ssize_t blink_control_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
-	schedule_work(&blink_work);
-	mod_timer(&blink_timer, jiffies + msecs_to_jiffies((bln_led_state) ? blink_off_msec : blink_on_msec));
+	return sprintf(buf, "%u\n", bln_conf.blink_control);
 }
+
+static ssize_t blink_interval_ms_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	return sscanf(buf, "%u %u", &bln_conf.on_ms, &bln_conf.off_ms);
+}
+
+static ssize_t blink_interval_ms_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u %u\n", bln_conf.on_ms, bln_conf.off_ms);
+}
+
+static ssize_t enable_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	unsigned int data;
+	int ret = sscanf(buf, "%u", &data);
+	if (ret != 1)
+		return -EINVAL;
+
+	bln_conf.enable = data;
+
+	if (!data)
+		set_bln_blink(BLN_OFF);
+
+	return size;
+}
+
+static ssize_t enable_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", bln_conf.enable);
+}
+
+static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO,
+		blink_control_read,
+		blink_control_write);
+static DEVICE_ATTR(blink_interval_ms, S_IRUGO | S_IWUGO,
+		blink_interval_ms_read,
+		blink_interval_ms_write);
+static DEVICE_ATTR(enable, S_IRUGO | S_IWUGO,
+		enable_read,
+		enable_write);
+
+static struct attribute *bln_attributes[] = {
+	&dev_attr_blink_control.attr,
+	&dev_attr_blink_interval_ms.attr,
+	&dev_attr_enable.attr,
+	NULL
+};
+
+static struct attribute_group bln_attr_group = {
+	.attrs  = bln_attributes,
+};
+
+static struct miscdevice bln_device = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "bln",
+};
+/**************************** SYSFS END ****************************/
 
 static int __init bln_control_init(void)
 {
 	int ret;
 
-	pr_info("%s misc_register(%s)\n", __FUNCTION__, bln_device.name);
+	INIT_DELAYED_WORK(&bln_main_work, bln_main);
 
 	ret = misc_register(&bln_device);
 	if (ret) {
-		pr_err("%s misc_register(%s) fail\n", __FUNCTION__,
-				bln_device.name);
-		return 1;
+		pr_err("Failed to register misc device!\n");
+		goto err;
 	}
 
-	mutex_init(&bln_mutex);
-
-	/* add the bln attributes */
-	if (sysfs_create_group(&bln_device.this_device->kobj,
-				&bln_notification_group) < 0) {
-
-		pr_err("%s sysfs_create_group fail\n", __FUNCTION__);
-		pr_err("Failed to create sysfs group for device (%s)!\n",
-				bln_device.name);
+	ret = sysfs_create_group(&bln_device.this_device->kobj, &bln_attr_group);
+	if (ret) {
+		pr_err("Failed to create sysfs group!\n");
+		goto err;
 	}
 
-	register_early_suspend(&bln_suspend_data);
-
-	/* Initialize wake locks */
-	wake_lock_init(&bln_wake_lock, WAKE_LOCK_SUSPEND, "bln_wake");
-
-	return 0;
+	register_early_suspend(&bln_early_suspend_handler);
+err:
+	return ret;
 }
-
 device_initcall(bln_control_init);
