@@ -31,7 +31,7 @@ enum {
 	BLN_ON,
 };
 
-struct bln_config {
+static struct bln_config {
 	unsigned int blink_control;
 	unsigned int enable;
 	unsigned int off_ms;
@@ -46,6 +46,7 @@ struct bln_config {
 static struct bln_implementation *bln_imp = NULL;
 static struct delayed_work bln_main_work;
 
+static bool blink_callback;
 static bool suspended;
 
 static void set_bln_blink(unsigned int bln_state)
@@ -54,6 +55,8 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_OFF:
 		if (bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_OFF;
+			cancel_delayed_work_sync(&bln_main_work);
+			blink_callback = false;
 			if (suspended) {
 				bln_imp->off();
 				bln_imp->disable();
@@ -72,27 +75,19 @@ static void set_bln_blink(unsigned int bln_state)
 
 static void bln_main(struct work_struct *work)
 {
-	static bool blink;
 	int blink_ms;
 
-	switch (bln_conf.blink_control) {
-	case BLN_OFF:
-		blink = false;
-		break;
-	case BLN_ON:
-		if (suspended) {
-			if (blink) {
-				blink = false;
-				blink_ms = bln_conf.off_ms;
-				bln_imp->off();
-			} else {
-				blink = true;
-				blink_ms = bln_conf.on_ms;
-				bln_imp->on();
-			}
-			schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
+	if (bln_conf.blink_control && suspended) {
+		if (blink_callback) {
+			blink_callback = false;
+			blink_ms = bln_conf.off_ms;
+			bln_imp->off();
+		} else {
+			blink_callback = true;
+			blink_ms = bln_conf.on_ms;
+			bln_imp->on();
 		}
-		break;
+		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
 	}
 }
 
@@ -122,7 +117,8 @@ static ssize_t blink_control_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	unsigned int data;
-	int ret= sscanf(buf, "%u", &data);
+	int ret = sscanf(buf, "%u", &data);
+
 	if (ret != 1)
 		return -EINVAL;
 
@@ -137,7 +133,6 @@ static ssize_t blink_control_write(struct device *dev,
 		else
 			set_bln_blink(BLN_OFF);
 	}
-
 err:
 	return size;
 }
@@ -165,6 +160,7 @@ static ssize_t enable_write(struct device *dev,
 {
 	unsigned int data;
 	int ret = sscanf(buf, "%u", &data);
+
 	if (ret != 1)
 		return -EINVAL;
 
