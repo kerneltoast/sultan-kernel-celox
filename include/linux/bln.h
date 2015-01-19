@@ -20,6 +20,12 @@
 
 #ifndef _LINUX_BLN_H
 #define _LINUX_BLN_H
+enum {
+	BLN_OFF,
+	BLN_BLINK_OFF,
+	BLN_ON,
+};
+
 struct bln_implementation {
     void (*disable_led_reg)(void);
     void (*enable_led_reg)(void);
