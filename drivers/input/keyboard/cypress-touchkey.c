@@ -1037,51 +1037,51 @@ if(touchled_cmd_reversed) {
 #endif				// End of CONFIG_HAS_EARLYSUSPEND
 
 #if defined(CONFIG_GENERIC_BLN)
-static void cypress_touchkey_enable_backlight(void) {
-    signed char int_data[] ={0x10};
-    mutex_lock(&touchkey_driver->mutex);
-    i2c_touchkey_write(int_data, 1);
+static void cypress_touchkey_enable_backlight(void)
+{
+	signed char int_data[] ={0x10};
 
-    mutex_unlock(&touchkey_driver->mutex);
+	mutex_lock(&touchkey_driver->mutex);
+	i2c_touchkey_write(int_data, 1);
+	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static void cypress_touchkey_disable_backlight(void) {
-    signed char int_data[] ={0x20};
-    mutex_lock(&touchkey_driver->mutex);
-    i2c_touchkey_write(int_data, 1);
+static void cypress_touchkey_disable_backlight(void)
+{
+	signed char int_data[] ={0x20};
 
-    mutex_unlock(&touchkey_driver->mutex);
+	mutex_lock(&touchkey_driver->mutex);
+	i2c_touchkey_write(int_data, 1);
+	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static bool cypress_touchkey_enable_led_notification(void) {
-    if (touchkey_enable)
-        return false;
+static void cypress_touchkey_enable_led_vdd(void)
+{
+	if (touchkey_enable)
+		return;
 
-    mutex_lock(&touchkey_driver->mutex);
-    tkey_vdd_enable(1);
-    msleep(50);
-    tkey_led_vdd_enable(1);
-
-    touchkey_driver->is_bln_active = true;
-    mutex_unlock(&touchkey_driver->mutex);
-    return true;
+	mutex_lock(&touchkey_driver->mutex);
+	tkey_vdd_enable(1);
+	msleep(50);
+	tkey_led_vdd_enable(1);
+	touchkey_driver->is_bln_active = true;
+	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static void cypress_touchkey_disable_led_notification(void) {
-    mutex_lock(&touchkey_driver->mutex);
-
-    tkey_vdd_enable(0);
-    tkey_led_vdd_enable(0);
-
-    touchkey_driver->is_bln_active = false;
-    mutex_unlock(&touchkey_driver->mutex);
+static void cypress_touchkey_disable_led_vdd(void)
+{
+	mutex_lock(&touchkey_driver->mutex);
+	tkey_vdd_enable(0);
+	tkey_led_vdd_enable(0);
+	touchkey_driver->is_bln_active = false;
+	mutex_unlock(&touchkey_driver->mutex);
 }
 
 static struct bln_implementation cypress_touchkey_bln = {
-    .enable = cypress_touchkey_enable_led_notification,
-    .disable = cypress_touchkey_disable_led_notification,
-    .on = cypress_touchkey_enable_backlight,
-    .off = cypress_touchkey_disable_backlight,
+	.enable_led_reg = cypress_touchkey_enable_led_vdd,
+	.disable_led_reg = cypress_touchkey_disable_led_vdd,
+	.led_on = cypress_touchkey_enable_backlight,
+	.led_off = cypress_touchkey_disable_backlight,
 };
 #endif
 
