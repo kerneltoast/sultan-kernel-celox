@@ -144,29 +144,17 @@ static ssize_t blink_control_write(struct device *dev,
 	return size;
 }
 
-static ssize_t blink_control_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", bln_conf.blink_control);
-}
-
 static ssize_t blink_interval_ms_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
 	return sscanf(buf, "%u %u", &bln_conf.on_ms, &bln_conf.off_ms);
 }
 
-static ssize_t blink_interval_ms_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u %u\n", bln_conf.on_ms, bln_conf.off_ms);
-}
-
 static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO,
-		blink_control_read,
+		NULL,
 		blink_control_write);
 static DEVICE_ATTR(blink_interval_ms, S_IRUGO | S_IWUGO,
-		blink_interval_ms_read,
+		NULL,
 		blink_interval_ms_write);
 
 static struct attribute *bln_attributes[] = {
