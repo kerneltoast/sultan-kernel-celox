@@ -1,5 +1,5 @@
 /*
- * include/linux/bln.h
+ * include/linux/enhanced_bln.h
  *
  * Copyright (C) 2015, Sultanxda <sultanxda@gmail.com>
  * Rewrote driver and core logic from scratch
@@ -33,7 +33,7 @@ struct bln_implementation {
     void (*led_on)(void);
 };
 
-#ifdef CONFIG_GENERIC_BLN
+#ifdef CONFIG_ENHANCED_BLN
 void register_bln_implementation(struct bln_implementation *imp);
 #else
 static inline void register_bln_implementation(struct bln_implementation *imp) { }

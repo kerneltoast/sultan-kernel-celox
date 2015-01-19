@@ -1,5 +1,5 @@
 /*
- * drivers/input/misc/bln.c
+ * drivers/input/misc/enhanced_bln.c
  *
  * Copyright (C) 2015, Sultanxda <sultanxda@gmail.com>
  * Rewrote driver and core logic from scratch
@@ -22,9 +22,9 @@
 
 #include <linux/device.h>
 #include <linux/earlysuspend.h>
+#include <linux/enhanced_bln.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
-#include <linux/bln.h>
 
 static struct bln_config {
 	unsigned int blink_control;
