@@ -33,9 +33,7 @@
 #include <asm/uaccess.h>
 #include <linux/earlysuspend.h>
 #include <asm/io.h>
-#if defined(CONFIG_GENERIC_BLN)
-#include <linux/bln.h>
-#endif
+#include <linux/enhanced_bln.h>
 #ifdef CONFIG_CPU_FREQ
 //#include <mach/cpu-freq-v210.h>  //temp ks
 #endif
@@ -306,7 +304,7 @@ static int i2c_touchkey_write(u8 * val, unsigned int len)
 	int retry = 2;
 
 	if ((touchkey_driver == NULL || touchkey_enable != 1)
-#if defined(CONFIG_GENERIC_BLN)
+#if defined(CONFIG_ENHANCED_BLN)
 		&& (!touchkey_driver->is_bln_active)
 #endif
 	) {
@@ -1036,7 +1034,7 @@ if(touchled_cmd_reversed) {
 }
 #endif				// End of CONFIG_HAS_EARLYSUSPEND
 
-#if defined(CONFIG_GENERIC_BLN)
+#if defined(CONFIG_ENHANCED_BLN)
 static unsigned int req_state;
 
 static void cypress_touchkey_enable_backlight(void)
@@ -1270,7 +1268,7 @@ if (get_hw_rev() >=0x02) {
 #endif
 	set_touchkey_debug('K');
 
-#if defined(CONFIG_GENERIC_BLN)
+#if defined(CONFIG_ENHANCED_BLN)
 	register_bln_implementation(&cypress_touchkey_bln);
 #endif
 
@@ -1489,7 +1487,7 @@ static ssize_t touch_led_control(struct device *dev, struct device_attribute *at
 	int int_data = 0;
 	int errnum = 0;
 
-#ifdef CONFIG_GENERIC_BLN
+#ifdef CONFIG_ENHANCED_BLN
 	sscanf(buf, "%u", &req_state);
 #endif
 
