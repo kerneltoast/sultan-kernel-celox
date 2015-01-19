@@ -26,11 +26,6 @@
 #include <linux/miscdevice.h>
 #include <linux/bln.h>
 
-enum {
-	BLN_OFF,
-	BLN_ON,
-};
-
 static struct bln_config {
 	unsigned int blink_control;
 	unsigned int off_ms;
@@ -55,10 +50,9 @@ static void set_bln_blink(unsigned int bln_state)
 			bln_conf.blink_control = BLN_OFF;
 			cancel_delayed_work_sync(&bln_main_work);
 			blink_callback = false;
-			if (suspended) {
-				bln_imp->led_off();
+			bln_imp->led_off(BLN_OFF);
+			if (suspended)
 				bln_imp->disable_led_reg();
-			}
 		}
 		break;
 	case BLN_ON:
@@ -75,11 +69,11 @@ static void bln_main(struct work_struct *work)
 {
 	int blink_ms;
 
-	if (bln_conf.blink_control && suspended) {
+	if (bln_conf.blink_control) {
 		if (blink_callback) {
 			blink_callback = false;
 			blink_ms = bln_conf.off_ms;
-			bln_imp->led_off();
+			bln_imp->led_off(BLN_BLINK_OFF);
 		} else {
 			blink_callback = true;
 			blink_ms = bln_conf.on_ms;

@@ -1037,6 +1037,8 @@ if(touchled_cmd_reversed) {
 #endif				// End of CONFIG_HAS_EARLYSUSPEND
 
 #if defined(CONFIG_GENERIC_BLN)
+static unsigned int req_state;
+
 static void cypress_touchkey_enable_backlight(void)
 {
 	signed char int_data[] ={0x10};
@@ -1046,9 +1048,15 @@ static void cypress_touchkey_enable_backlight(void)
 	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static void cypress_touchkey_disable_backlight(void)
+static void cypress_touchkey_disable_backlight(int bln_state)
 {
 	signed char int_data[] ={0x20};
+
+	/* don't turn off leds if userspace wants them on */
+	if ((bln_state == BLN_OFF) && req_state == 1) {
+		cypress_touchkey_enable_backlight();
+		return;
+	}
 
 	mutex_lock(&touchkey_driver->mutex);
 	i2c_touchkey_write(int_data, 1);
@@ -1480,6 +1488,11 @@ static ssize_t touch_led_control(struct device *dev, struct device_attribute *at
 {
 	int int_data = 0;
 	int errnum = 0;
+
+#ifdef CONFIG_GENERIC_BLN
+	sscanf(buf, "%u", &req_state);
+#endif
+
 #if defined(CONFIG_KOR_MODEL_SHV_E160L)
 	if(touchkey_connected==0){
 		printk(KERN_ERR "[TKEY] led_control return connect_error\n");
