@@ -32,8 +32,8 @@ static struct bln_config {
 	unsigned int on_ms;
 } bln_conf = {
 	.blink_control = 0,
-	.off_ms = 2000,
-	.on_ms = 500,
+	.off_ms = 0,
+	.on_ms = 0,
 };
 
 static struct bln_implementation *bln_imp = NULL;
