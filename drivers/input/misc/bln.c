@@ -56,15 +56,15 @@ static void set_bln_blink(unsigned int bln_state)
 			cancel_delayed_work_sync(&bln_main_work);
 			blink_callback = false;
 			if (suspended) {
-				bln_imp->off();
-				bln_imp->disable();
+				bln_imp->led_off();
+				bln_imp->disable_led_reg();
 			}
 		}
 		break;
 	case BLN_ON:
 		if (!bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_ON;
-			bln_imp->enable();
+			bln_imp->enable_led_reg();
 			schedule_delayed_work(&bln_main_work, 0);
 		}
 		break;
@@ -79,11 +79,11 @@ static void bln_main(struct work_struct *work)
 		if (blink_callback) {
 			blink_callback = false;
 			blink_ms = bln_conf.off_ms;
-			bln_imp->off();
+			bln_imp->led_off();
 		} else {
 			blink_callback = true;
 			blink_ms = bln_conf.on_ms;
-			bln_imp->on();
+			bln_imp->led_on();
 		}
 		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
 	}

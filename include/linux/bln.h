@@ -21,11 +21,15 @@
 #ifndef _LINUX_BLN_H
 #define _LINUX_BLN_H
 struct bln_implementation {
-    bool (*enable)(void);
-    void (*disable)(void);
-    void (*on)(void);
-    void (*off)(void);
+    void (*disable_led_reg)(void);
+    void (*enable_led_reg)(void);
+    void (*led_off)(int bln_state);
+    void (*led_on)(void);
 };
 
+#ifdef CONFIG_GENERIC_BLN
 void register_bln_implementation(struct bln_implementation *imp);
+#else
+static inline void register_bln_implementation(struct bln_implementation *imp) { }
 #endif
+#endif /* _LINUX_BLN_H */
