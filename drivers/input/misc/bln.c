@@ -33,12 +33,10 @@ enum {
 
 static struct bln_config {
 	unsigned int blink_control;
-	unsigned int enable;
 	unsigned int off_ms;
 	unsigned int on_ms;
 } bln_conf = {
 	.blink_control = 0,
-	.enable = 0,
 	.off_ms = 2000,
 	.on_ms = 500,
 };
@@ -122,17 +120,15 @@ static ssize_t blink_control_write(struct device *dev,
 	if (ret != 1)
 		return -EINVAL;
 
-	if (bln_conf.enable) {
-		if (bln_imp == NULL) {
-			pr_err("No BLN implementation found, BLN blink failed\n");
-			goto err;
-		}
-
-		if (data)
-			set_bln_blink(BLN_ON);
-		else
-			set_bln_blink(BLN_OFF);
+	if (bln_imp == NULL) {
+		pr_err("No BLN implementation found, BLN blink failed\n");
+		goto err;
 	}
+
+	if (data)
+		set_bln_blink(BLN_ON);
+	else
+		set_bln_blink(BLN_OFF);
 err:
 	return size;
 }
@@ -155,43 +151,16 @@ static ssize_t blink_interval_ms_read(struct device *dev,
 	return sprintf(buf, "%u %u\n", bln_conf.on_ms, bln_conf.off_ms);
 }
 
-static ssize_t enable_write(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int data;
-	int ret = sscanf(buf, "%u", &data);
-
-	if (ret != 1)
-		return -EINVAL;
-
-	bln_conf.enable = data;
-
-	if (!data)
-		set_bln_blink(BLN_OFF);
-
-	return size;
-}
-
-static ssize_t enable_read(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u\n", bln_conf.enable);
-}
-
 static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO,
 		blink_control_read,
 		blink_control_write);
 static DEVICE_ATTR(blink_interval_ms, S_IRUGO | S_IWUGO,
 		blink_interval_ms_read,
 		blink_interval_ms_write);
-static DEVICE_ATTR(enable, S_IRUGO | S_IWUGO,
-		enable_read,
-		enable_write);
 
 static struct attribute *bln_attributes[] = {
 	&dev_attr_blink_control.attr,
 	&dev_attr_blink_interval_ms.attr,
-	&dev_attr_enable.attr,
 	NULL
 };
 
