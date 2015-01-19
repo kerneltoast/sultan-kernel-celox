@@ -23,8 +23,10 @@
 #include <linux/device.h>
 #include <linux/earlysuspend.h>
 #include <linux/enhanced_bln.h>
+#include <linux/hrtimer.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
+#include <linux/wakelock.h>
 
 static struct bln_config {
 	unsigned int blink_control;
@@ -38,9 +40,13 @@ static struct bln_config {
 
 static struct bln_implementation *bln_imp = NULL;
 static struct delayed_work bln_main_work;
+static struct wake_lock bln_wake_lock;
 
 static bool blink_callback;
 static bool suspended;
+
+static u64 bln_start_time;
+#define BLN_TIMEOUT (600000 * USEC_PER_MSEC) /* 10 minutes */
 
 static void set_bln_blink(unsigned int bln_state)
 {
@@ -48,17 +54,20 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_OFF:
 		if (bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_OFF;
-			cancel_delayed_work_sync(&bln_main_work);
 			blink_callback = false;
 			bln_imp->led_off(BLN_OFF);
 			if (suspended)
 				bln_imp->disable_led_reg();
+			wake_unlock(&bln_wake_lock);
 		}
 		break;
 	case BLN_ON:
 		if (!bln_conf.blink_control) {
+			wake_lock(&bln_wake_lock);
 			bln_conf.blink_control = BLN_ON;
+			bln_start_time = ktime_to_us(ktime_get());
 			bln_imp->enable_led_reg();
+			cancel_delayed_work_sync(&bln_main_work);
 			schedule_delayed_work(&bln_main_work, 0);
 		}
 		break;
@@ -68,6 +77,7 @@ static void set_bln_blink(unsigned int bln_state)
 static void bln_main(struct work_struct *work)
 {
 	int blink_ms;
+	u64 now;
 
 	if (bln_conf.blink_control) {
 		if (blink_callback) {
@@ -79,6 +89,13 @@ static void bln_main(struct work_struct *work)
 			blink_ms = bln_conf.on_ms;
 			bln_imp->led_on();
 		}
+
+		now = ktime_to_us(ktime_get());
+		if ((now - bln_start_time) >= BLN_TIMEOUT) {
+			set_bln_blink(BLN_OFF);
+			return;
+		}
+
 		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
 	}
 }
@@ -116,14 +133,14 @@ static ssize_t blink_control_write(struct device *dev,
 
 	if (bln_imp == NULL) {
 		pr_err("No BLN implementation found, BLN blink failed\n");
-		goto err;
+		return size;
 	}
 
 	if (data)
 		set_bln_blink(BLN_ON);
 	else
 		set_bln_blink(BLN_OFF);
-err:
+
 	return size;
 }
 
@@ -168,7 +185,7 @@ static struct miscdevice bln_device = {
 };
 /**************************** SYSFS END ****************************/
 
-static int __init bln_control_init(void)
+static int __init enhanced_bln_init(void)
 {
 	int ret;
 
@@ -186,8 +203,10 @@ static int __init bln_control_init(void)
 		goto err;
 	}
 
+	wake_lock_init(&bln_wake_lock, WAKE_LOCK_SUSPEND, "bln_wake_lock");
+
 	register_early_suspend(&bln_early_suspend_handler);
 err:
 	return ret;
 }
-device_initcall(bln_control_init);
+device_initcall(enhanced_bln_init);
