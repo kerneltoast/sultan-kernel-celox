@@ -29,11 +29,13 @@
 #include <linux/wakelock.h>
 
 static struct bln_config {
+	bool always_on;
 	unsigned int blink_control;
 	unsigned int blink_timeout_ms;
 	unsigned int off_ms;
 	unsigned int on_ms;
 } bln_conf = {
+	.always_on = false,
 	.blink_control = 0,
 	.blink_timeout_ms = 600000,
 	.off_ms = 0,
@@ -55,10 +57,12 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_OFF:
 		if (bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_OFF;
+			bln_conf.always_on = false;
 			bln_imp->led_off(BLN_OFF);
 			if (suspended)
 				bln_imp->disable_led_reg();
-			wake_unlock(&bln_wake_lock);
+			if (wake_lock_active(&bln_wake_lock))
+				wake_unlock(&bln_wake_lock);
 		}
 		break;
 	case BLN_ON:
@@ -84,6 +88,10 @@ static void bln_main(struct work_struct *work)
 		if (blink_callback) {
 			blink_callback = false;
 			blink_ms = bln_conf.off_ms;
+			if (bln_conf.always_on) {
+				wake_unlock(&bln_wake_lock);
+				return;
+			}
 			bln_imp->led_off(BLN_BLINK_OFF);
 		} else {
 			blink_callback = true;
@@ -91,7 +99,7 @@ static void bln_main(struct work_struct *work)
 			bln_imp->led_on();
 		}
 
-		if (bln_conf.blink_timeout_ms) {
+		if (bln_conf.blink_timeout_ms && !bln_conf.always_on) {
 			now = ktime_to_ms(ktime_get());
 			if ((now - bln_start_time) >= bln_conf.blink_timeout_ms) {
 				set_bln_blink(BLN_OFF);
@@ -106,6 +114,14 @@ static void bln_main(struct work_struct *work)
 static void bln_early_suspend(struct early_suspend *h)
 {
 	suspended = true;
+
+	/* Resume always-on mode if screen is unlocked and then locked without
+	 * clearing the notification. Added 1 sec delay to prevent races.
+	 */
+	if (bln_conf.always_on) {
+		wake_lock(&bln_wake_lock);
+		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(1000));
+	}
 }
 
 static void bln_late_resume(struct early_suspend *h)
@@ -150,7 +166,30 @@ static ssize_t blink_control_write(struct device *dev,
 static ssize_t blink_interval_ms_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
-	return sscanf(buf, "%u %u", &bln_conf.on_ms, &bln_conf.off_ms);
+	unsigned int on_ms, off_ms;
+	int ret = sscanf(buf, "%u %u", &on_ms, &off_ms);
+
+	if (ret != 2)
+		return -EINVAL;
+
+	if (!off_ms && on_ms == 1)
+		bln_conf.always_on = true;
+
+	/* break out of always-on mode */
+	if (bln_conf.always_on && (off_ms || on_ms > 1)) {
+		cancel_delayed_work_sync(&bln_main_work);
+		wake_lock(&bln_wake_lock);
+		bln_conf.always_on = false;
+		bln_conf.on_ms = on_ms;
+		bln_conf.off_ms = off_ms;
+		schedule_delayed_work(&bln_main_work, 0);
+		return size;
+	}
+
+	bln_conf.on_ms = on_ms;
+	bln_conf.off_ms = off_ms;
+
+	return size;
 }
 
 static ssize_t blink_timeout_ms_write(struct device *dev,
