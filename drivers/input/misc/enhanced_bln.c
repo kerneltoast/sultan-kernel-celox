@@ -30,10 +30,12 @@
 
 static struct bln_config {
 	unsigned int blink_control;
+	unsigned int blink_timeout_ms;
 	unsigned int off_ms;
 	unsigned int on_ms;
 } bln_conf = {
 	.blink_control = 0,
+	.blink_timeout_ms = 600000,
 	.off_ms = 0,
 	.on_ms = 0,
 };
@@ -46,7 +48,6 @@ static bool blink_callback;
 static bool suspended;
 
 static u64 bln_start_time;
-#define BLN_TIMEOUT (600000 * USEC_PER_MSEC) /* 10 minutes */
 
 static void set_bln_blink(unsigned int bln_state)
 {
@@ -54,7 +55,6 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_OFF:
 		if (bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_OFF;
-			blink_callback = false;
 			bln_imp->led_off(BLN_OFF);
 			if (suspended)
 				bln_imp->disable_led_reg();
@@ -65,9 +65,10 @@ static void set_bln_blink(unsigned int bln_state)
 		if (!bln_conf.blink_control) {
 			wake_lock(&bln_wake_lock);
 			bln_conf.blink_control = BLN_ON;
-			bln_start_time = ktime_to_us(ktime_get());
+			bln_start_time = ktime_to_ms(ktime_get());
 			bln_imp->enable_led_reg();
 			cancel_delayed_work_sync(&bln_main_work);
+			blink_callback = false;
 			schedule_delayed_work(&bln_main_work, 0);
 		}
 		break;
@@ -90,10 +91,12 @@ static void bln_main(struct work_struct *work)
 			bln_imp->led_on();
 		}
 
-		now = ktime_to_us(ktime_get());
-		if ((now - bln_start_time) >= BLN_TIMEOUT) {
-			set_bln_blink(BLN_OFF);
-			return;
+		if (bln_conf.blink_timeout_ms) {
+			now = ktime_to_ms(ktime_get());
+			if ((now - bln_start_time) >= bln_conf.blink_timeout_ms) {
+				set_bln_blink(BLN_OFF);
+				return;
+			}
 		}
 
 		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
@@ -150,16 +153,40 @@ static ssize_t blink_interval_ms_write(struct device *dev,
 	return sscanf(buf, "%u %u", &bln_conf.on_ms, &bln_conf.off_ms);
 }
 
+static ssize_t blink_timeout_ms_write(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	unsigned int data;
+	int ret = sscanf(buf, "%u", &data);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	bln_conf.blink_timeout_ms = data;
+
+	return size;
+}
+
+static ssize_t blink_timeout_ms_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", bln_conf.blink_timeout_ms);
+}
+
 static DEVICE_ATTR(blink_control, S_IRUGO | S_IWUGO,
 		NULL,
 		blink_control_write);
 static DEVICE_ATTR(blink_interval_ms, S_IRUGO | S_IWUGO,
 		NULL,
 		blink_interval_ms_write);
+static DEVICE_ATTR(blink_timeout_ms, S_IRUGO | S_IWUGO,
+		blink_timeout_ms_read,
+		blink_timeout_ms_write);
 
 static struct attribute *bln_attributes[] = {
 	&dev_attr_blink_control.attr,
 	&dev_attr_blink_interval_ms.attr,
+	&dev_attr_blink_timeout_ms.attr,
 	NULL
 };
 
