@@ -166,10 +166,14 @@ static ssize_t blink_control_write(struct device *dev,
 static ssize_t blink_interval_ms_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
-	int ret = sscanf(buf, "%u %u", &bln_conf.on_ms, &bln_conf.off_ms);
+	unsigned int on_ms, off_ms;
+	int ret = sscanf(buf, "%u %u", &on_ms, &off_ms);
 
 	if (ret != 2)
 		return -EINVAL;
+
+	bln_conf.on_ms = on_ms;
+	bln_conf.off_ms = off_ms;
 
 	if (!bln_conf.off_ms && bln_conf.on_ms == 1)
 		bln_conf.always_on = true;
@@ -188,7 +192,15 @@ static ssize_t blink_interval_ms_write(struct device *dev,
 static ssize_t blink_timeout_ms_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
-	return sscanf(buf, "%u", &bln_conf.blink_timeout_ms);
+	unsigned int data;
+	int ret = sscanf(buf, "%u", &data);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	bln_conf.blink_timeout_ms = data;
+
+	return size;
 }
 
 static ssize_t blink_timeout_ms_read(struct device *dev,
