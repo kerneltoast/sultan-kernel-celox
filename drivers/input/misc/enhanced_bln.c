@@ -220,7 +220,7 @@ static struct attribute_group bln_attr_group = {
 
 static struct miscdevice bln_device = {
 	.minor = MISC_DYNAMIC_MINOR,
-	.name = "bln",
+	.name = "enhanced_bln",
 };
 /**************************** SYSFS END ****************************/
 
