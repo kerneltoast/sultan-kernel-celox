@@ -57,6 +57,7 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_OFF:
 		if (bln_conf.blink_control) {
 			bln_conf.blink_control = BLN_OFF;
+			cancel_delayed_work_sync(&bln_main_work);
 			bln_conf.always_on = false;
 			bln_imp->led_off(BLN_OFF);
 			if (suspended)
@@ -71,7 +72,6 @@ static void set_bln_blink(unsigned int bln_state)
 			bln_conf.blink_control = BLN_ON;
 			bln_start_time = ktime_to_ms(ktime_get());
 			bln_imp->enable_led_reg();
-			cancel_delayed_work_sync(&bln_main_work);
 			blink_callback = false;
 			schedule_delayed_work(&bln_main_work, 0);
 		}
