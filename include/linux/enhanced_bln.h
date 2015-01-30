@@ -18,8 +18,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _LINUX_BLN_H
-#define _LINUX_BLN_H
+#ifndef _LINUX_ENHANCED_BLN_H
+#define _LINUX_ENHANCED_BLN_H
 enum {
 	BLN_OFF,
 	BLN_BLINK_OFF,
@@ -38,4 +38,4 @@ void register_bln_implementation(struct bln_implementation *imp);
 #else
 static inline void register_bln_implementation(struct bln_implementation *imp) { }
 #endif
-#endif /* _LINUX_BLN_H */
+#endif /* _LINUX_ENHANCED_BLN_H */
