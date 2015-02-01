@@ -303,7 +303,12 @@ static int i2c_touchkey_write(u8 * val, unsigned int len)
 	struct i2c_msg msg[1];
 	int retry = 2;
 
-	if ((touchkey_driver == NULL || touchkey_enable != 1)
+	if (touchkey_driver == NULL) {
+		printk(KERN_DEBUG "[TKEY] touchkey_driver is NULL\n");
+		return -ENODEV;
+	}
+
+	if ((touchkey_enable != 1)
 #if defined(CONFIG_ENHANCED_BLN)
 		&& (!touchkey_driver->is_bln_active)
 #endif
