@@ -51,7 +51,7 @@ static bool suspended;
 
 static u64 bln_start_time;
 
-static void set_bln_blink(unsigned int bln_state)
+static void set_bln_state(unsigned int bln_state)
 {
 	switch (bln_state) {
 	case BLN_OFF:
@@ -69,9 +69,9 @@ static void set_bln_blink(unsigned int bln_state)
 	case BLN_ON:
 		if (!bln_conf.blink_control) {
 			wake_lock(&bln_wake_lock);
-			bln_conf.blink_control = BLN_ON;
 			bln_start_time = ktime_to_ms(ktime_get());
 			bln_imp->enable_led_reg();
+			bln_conf.blink_control = BLN_ON;
 			blink_callback = false;
 			schedule_delayed_work(&bln_main_work, 0);
 		}
@@ -145,9 +145,9 @@ static ssize_t blink_control_write(struct device *dev,
 	}
 
 	if (data)
-		set_bln_blink(BLN_ON);
+		set_bln_state(BLN_ON);
 	else
-		set_bln_blink(BLN_OFF);
+		set_bln_state(BLN_OFF);
 
 	return size;
 }
