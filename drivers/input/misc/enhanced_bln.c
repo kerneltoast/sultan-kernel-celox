@@ -167,6 +167,8 @@ static ssize_t blink_interval_ms_write(struct device *dev,
 	if (!bln_conf.off_ms && bln_conf.on_ms == 1)
 		bln_conf.always_on = true;
 
+	bln_start_time = ktime_to_ms(ktime_get());
+
 	/* break out of always-on mode */
 	if (bln_conf.always_on && (bln_conf.off_ms || bln_conf.on_ms > 1)) {
 		cancel_delayed_work_sync(&bln_main_work);
