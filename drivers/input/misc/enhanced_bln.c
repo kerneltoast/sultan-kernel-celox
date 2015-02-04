@@ -87,24 +87,21 @@ static void bln_main(struct work_struct *work)
 	if (bln_conf.blink_control) {
 		if (blink_callback) {
 			blink_callback = false;
-			blink_ms = bln_conf.off_ms;
+			if (bln_conf.blink_timeout_ms && !bln_conf.always_on) {
+				now = ktime_to_ms(ktime_get());
+				if ((now - bln_start_time) >= bln_conf.blink_timeout_ms)
+					bln_conf.always_on = true;
+			}
 			if (bln_conf.always_on) {
 				wake_unlock(&bln_wake_lock);
 				return;
 			}
+			blink_ms = bln_conf.off_ms;
 			bln_imp->led_off(BLN_BLINK_OFF);
 		} else {
 			blink_callback = true;
 			blink_ms = bln_conf.on_ms;
 			bln_imp->led_on();
-		}
-
-		if (bln_conf.blink_timeout_ms && !bln_conf.always_on) {
-			now = ktime_to_ms(ktime_get());
-			if ((now - bln_start_time) >= bln_conf.blink_timeout_ms) {
-				set_bln_blink(BLN_OFF);
-				return;
-			}
 		}
 
 		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(blink_ms));
@@ -114,14 +111,6 @@ static void bln_main(struct work_struct *work)
 static void bln_early_suspend(struct early_suspend *h)
 {
 	suspended = true;
-
-	/* Resume always-on mode if screen is unlocked and then locked without
-	 * clearing the notification. Added 100ms delay to prevent races.
-	 */
-	if (bln_conf.always_on && !delayed_work_pending(&bln_main_work)) {
-		wake_lock(&bln_wake_lock);
-		schedule_delayed_work(&bln_main_work, msecs_to_jiffies(100));
-	}
 }
 
 static void bln_late_resume(struct early_suspend *h)
