@@ -676,8 +676,6 @@ struct input_keymap_entry {
 #define KEY_CAMERA_LEFT		0x219
 #define KEY_CAMERA_RIGHT	0x21a
 
-#define KEY_PEN_PDCT		0x230 /* E-PEN PDCT flag*/
-
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0
 #define BTN_TRIGGER_HAPPY2		0x2c1
@@ -793,8 +791,6 @@ struct input_keymap_entry {
 #define ABS_MT_PALM		0x3d	/* palm touch */
 #define ABS_MT_SUMSIZE		0x3d	/* touch sumsize */
 
-
-
 #ifdef __KERNEL__
 /* Implementation details, userspace should not care about these */
 #define ABS_MT_FIRST		ABS_MT_TOUCH_MAJOR
@@ -825,7 +821,6 @@ struct input_keymap_entry {
 #define SW_ROTATE_LOCK		0x0c  /* set = rotate locked/disabled */
 #define SW_HPHL_OVERCURRENT	0x0d  /* set = over current on left hph */
 #define SW_HPHR_OVERCURRENT	0x0e  /* set = over current on right hph */
-#define SW_PEN_INSERT	0x0f    /* set = pen out */
 #define SW_MAX			0x0f
 #define SW_CNT			(SW_MAX+1)
 

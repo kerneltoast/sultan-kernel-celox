@@ -400,16 +400,6 @@ config TOUCHSCREEN_QT602240
 	  To compile this driver as a module, choose M here: the
 	  module will be called qt602240_ts.
 
-config TOUCHSCREEN_ATMEL_MXT540E
-	tristate "Atmel MXT540E Touchscreen Interface"
-	depends on I2C
-	default n
-	help
-		Say Y here if you want support for atmel_MXT540E touchscreen controllers.
-		
-		To compile this driver as a module, choose M here: the
-		module will be called mxt540e_q1.
-
 config TOUCHSCREEN_MIGOR
 	tristate "Renesas MIGO-R touchscreen"
 	depends on SH_MIGOR && I2C

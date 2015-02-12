@@ -2568,7 +2568,7 @@ static void msmsdcc_msm_bus_cancel_work_and_set_vote(
 
 	if(host->plat->is_sdio_al_client)
 		return;
-		
+
 	if (!host->msm_bus_vote.client_handle)
 		return;
 
@@ -5176,7 +5176,6 @@ msmsdcc_runtime_suspend(struct device *dev)
 	}
 
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
-
 	if (mmc) {
 		host->sdcc_suspending = 1;
 		mmc->suspend_task = current;
@@ -5247,7 +5246,6 @@ msmsdcc_runtime_resume(struct device *dev)
 		return 0;
 
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
-
 	if (mmc) {
 		if (mmc->card && mmc_card_sdio(mmc->card) &&
 				mmc_card_keep_power(mmc)) {

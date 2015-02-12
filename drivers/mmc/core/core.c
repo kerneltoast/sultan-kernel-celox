@@ -1979,14 +1979,9 @@ int mmc_suspend_host(struct mmc_host *host)
 	if (!err && !mmc_card_keep_power(host))
 		mmc_power_off(host);
 
-#if defined (CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined (CONFIG_KOR_MODEL_SHV_E160L) || \
-	defined (CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined (CONFIG_KOR_MODEL_SHV_E120L) || \
-	defined (CONFIG_KOR_MODEL_SHV_E110S)
-	
-#else
-	if (host->card && host->index == 2 )
+	if (host->card && host->index == 2)
 		mdelay(50);
-#endif
+
 	return err;
 }
 

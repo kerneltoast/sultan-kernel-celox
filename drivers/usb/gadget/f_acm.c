@@ -1041,10 +1041,5 @@ static int acm_init_port(int port_num, const char *name)
 
 	nr_acm_ports++;
 
-	pr_info("%s:gport:tty_ports:%u sdio_ports:%u "
-			"smd_ports:%u nr_ports:%u\n",
-			__func__, no_acm_tty_ports, no_acm_sdio_ports,
-			no_acm_smd_ports, nr_acm_ports);
-	
 	return 0;
 }

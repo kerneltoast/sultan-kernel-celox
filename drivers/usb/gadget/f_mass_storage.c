@@ -408,7 +408,7 @@ struct fsg_common {
 	 * hexadecimal digits) and NUL byte
 	 */
 	char inquiry_string[8 + 16 + 4 + 1];
-	
+
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 	char vendor_string[8 + 1];
 	char product_string[16 + 1];
@@ -1315,7 +1315,7 @@ static int do_inquiry(struct fsg_common *common, struct fsg_buffhd *bh)
 		common->vendor_string,
 		new_product_name, 1);
 #endif
-	
+
 	memcpy(buf + 8, common->inquiry_string, sizeof common->inquiry_string);
 	return 36;
 }
