@@ -32,8 +32,6 @@
 #include <mach/irqs.h>
 #include <mach/socinfo.h>
 
-#include <mach/sec_debug.h>
-
 #if defined(CONFIG_MSM_SMD)
 #include "smd_private.h"
 #endif
@@ -205,7 +203,6 @@ static irqreturn_t msm_timer_interrupt(int irq, void *dev_id)
 	if (evt->event_handler == NULL)
 		return IRQ_HANDLED;
 	evt->event_handler(evt);
-	sec_debug_timer_log(2222, (int)irqs_disabled(), (void*)evt->event_handler);
 	return IRQ_HANDLED;
 }
 

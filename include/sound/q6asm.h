@@ -16,7 +16,7 @@
 #include <mach/msm_subsystem_map.h>
 #include <sound/apr_audio.h>
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #endif
 
 #define IN                      0x000

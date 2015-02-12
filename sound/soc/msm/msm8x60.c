@@ -380,9 +380,6 @@ static int msm_device_put(struct snd_kcontrol *kcontrol,
 	pr_info("%s:device %s set %d\n", __func__, dev_info->name, set);
 
 	if (set) {
-	        #ifndef CONFIG_USA_MODEL_SGH_T989
-		pr_info("Device %s Opened = %d\n", dev_info->name, dev_info->opened);
-		#endif
 		if (!dev_info->opened) {
 #if defined (CONFIG_TARGET_LOCALE_USA)
 			if(!strcmp(dev_info->name, "dualmic_handset_ef_tx"))
@@ -411,7 +408,6 @@ static int msm_device_put(struct snd_kcontrol *kcontrol,
 			}
 			dev_info->set_sample_rate = rc;
 			rc = 0;
-			pr_info("Device trying to open : %s\n", dev_info->name);
 			rc = dev_info->dev_ops.open(dev_info);
 			if (rc < 0) {
 /*[[Safeguard code for device open issue -START //balaji.k

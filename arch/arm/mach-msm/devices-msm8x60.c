@@ -518,29 +518,6 @@ static struct resource gsbi9_qup_i2c_resources[] = {
 	},
 };
 
-#if defined (CONFIG_EPEN_WACOM_G5SP)
-static struct resource gsbi11_qup_i2c_resources[] = {
-	{
-		.name	= "qup_phys_addr",
-		.start	= MSM_GSBI11_QUP_PHYS,
-		.end	= MSM_GSBI11_QUP_PHYS + SZ_4K - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	{
-		.name	= "gsbi_qup_i2c_addr",
-		.start	= MSM_GSBI11_PHYS,
-		.end	= MSM_GSBI11_PHYS + 4 - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	{
-		.name	= "qup_err_intr",
-		.start	= GSBI11_QUP_IRQ,
-		.end	= GSBI11_QUP_IRQ,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-#endif
-
 static struct resource gsbi12_qup_i2c_resources[] = {
 	{
 		.name	= "qup_phys_addr",
@@ -978,16 +955,6 @@ struct platform_device msm_gsbi7_qup_i2c_device = {
 	.num_resources	= ARRAY_SIZE(gsbi7_qup_i2c_resources),
 	.resource	= gsbi7_qup_i2c_resources,
 };
-
-#if defined (CONFIG_EPEN_WACOM_G5SP)
-/* Use GSBI11 QUP for /dev/i2c-18 (E-Pen) */
-struct platform_device msm_gsbi11_qup_i2c_device = {
-	.name		= "qup_i2c",
-	.id		= MSM_GSBI11_QUP_I2C_BUS_ID,
-	.num_resources	= ARRAY_SIZE(gsbi11_qup_i2c_resources),
-	.resource	= gsbi11_qup_i2c_resources,
-};
-#endif /* defined (CONFIG_EPEN_WACOM_G5SP) */
 
 /* Use GSBI12 QUP for /dev/i2c-5 (Sensors) */
 struct platform_device msm_gsbi12_qup_i2c_device = {

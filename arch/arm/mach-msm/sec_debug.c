@@ -694,8 +694,6 @@ void sec_debug_check_crash_key(unsigned int code, int value)
                 break;
     		case STEP10:
     			if (code == LOCKUP_THIRD_KEY && value) {
-    				dump_all_task_info();
-    				dump_cpu_stat();
     				panic("Commercial Dump");
     			}
     			else
@@ -730,8 +728,6 @@ void sec_debug_check_crash_key(unsigned int code, int value)
 			break;
 		case STEP1:
 			if (code == LOCKUP_FIRST_KEY && value) {
-				dump_all_task_info();
-				dump_cpu_stat();
 				panic("Crash Key");
 			}
 			else
@@ -759,8 +755,6 @@ void sec_debug_check_crash_key(unsigned int code, int value)
 			break;
 		case STEP2:
 			if (code == LOCKUP_THIRD_KEY&& value) {
-				dump_all_task_info();
-				dump_cpu_stat();
 				panic("Crash Key");
 			}
 			else
@@ -849,8 +843,8 @@ __init int sec_debug_init(void)
 		sec_debug_nocache_log->gExcpRegRWLogIdx[0] = -1;
 		sec_debug_nocache_log->gExcpRegRWLogIdx[1] = -1;
 #endif
-#endif
 	}
+#endif
 
 	debug_semaphore_init();
 	sec_debug_set_build_info();

@@ -30,7 +30,6 @@
 #include <linux/debugfs.h>
 #include <linux/time.h>
 #include <linux/atomic.h>
-#include <linux/msm_ion.h>
 
 #include <asm/ioctls.h>
 

@@ -207,11 +207,7 @@ static void modem_crash_shutdown(
 {
 	/* If modem hasn't already crashed, send SMSM_RESET. */
 	if (!(smsm_get_state(SMSM_MODEM_STATE) & SMSM_RESET)) {
-#if defined(CONFIG_SEC_DEBUG)
-		if (!in_irq() && !in_atomic()) {
-#endif
-			modem_unregister_notifier(&modem_notif_nb);
-		}/* CONFIG_SEC_DEBUG */
+		modem_unregister_notifier(&modem_notif_nb);
 		smsm_reset_modem(SMSM_RESET);
 	}
 
