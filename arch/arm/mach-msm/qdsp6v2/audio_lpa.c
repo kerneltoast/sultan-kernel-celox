@@ -1192,12 +1192,13 @@ static int audio_release(struct inode *inode, struct file *file)
 	if (audio->out_enabled)
 		audlpa_async_flush(audio);
 	audio->wflush = 0;
-	audlpa_unmap_ion_region(audio);
 	audio_disable(audio);
+        audlpa_unmap_ion_region(audio);
 	msm_clear_session_id(audio->ac->session);
 	auddev_unregister_evt_listner(AUDDEV_CLNT_DEC, audio->ac->session);
 	q6asm_audio_client_free(audio->ac);
-	audlpa_reset_ion_region(audio);
+        audlpa_reset_ion_region(audio);
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&audio->suspend_ctl.node);
 #endif
