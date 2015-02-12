@@ -1340,11 +1340,8 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 	state = dev->otg.state;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	if(printk_ratelimit()){
-		pr_debug("IRQ state: %s\n", state_string(state));
-		pr_debug("otgsc = %x\n", otgsc);
-		printk("%s: IRQ state: %s\t otgsc = %x\n", __func__, state_string(state), otgsc);
-	}
+	pr_debug("IRQ state: %s\n", state_string(state));
+	pr_debug("otgsc = %x\n", otgsc);
 
 	if ((otgsc & OTGSC_IDIE) && (otgsc & OTGSC_IDIS)) {
 		if (otgsc & OTGSC_ID) {
@@ -1361,7 +1358,6 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 		}
 		writel(otgsc, USB_OTGSC);
 		work = 1;
-		printk("%s HOST irq\n", __func__);
 	} else if (otgsc & OTGSC_BSVIS) {
 		writel(otgsc, USB_OTGSC);
 		/* BSV interrupt comes when operating as an A-device
@@ -1387,7 +1383,7 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 			}
 #endif
 			goto out;
-		}	
+		}
 		if (otgsc & OTGSC_BSV) {
 			pr_debug("BSV set\n");
 			set_bit(B_SESS_VLD, &dev->inputs);
@@ -1404,10 +1400,7 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 		work = 1;
 	} else if (sts & STS_PCI) {
 		pc = readl(USB_PORTSC);
-
-		if(printk_ratelimit())
-			pr_debug("portsc = %x\n", pc);
-
+		pr_debug("portsc = %x\n", pc);
 		ret = IRQ_NONE;
 		/* HCD Acks PCI interrupt. We use this to switch
 		 * between different OTG states.
@@ -1795,10 +1788,8 @@ static void msm_otg_sm_work(struct work_struct *w)
 			break;
 		}
 
-		printk("%s %d id=%d OTG_STATE_UNDEFINED\n", __func__, __LINE__, test_bit(ID, &dev->inputs));
 		/* Reset both phy and link */
 		otg_reset(&dev->otg, 1);
-		printk("%s %d id=%d OTG_STATE_UNDEFINED\n", __func__, __LINE__, test_bit(ID, &dev->inputs));
 
 #ifdef CONFIG_USB_MSM_ACA
 		set_aca_id_inputs(dev);
@@ -2659,7 +2650,7 @@ static int otg_debugfs_init(struct msm_otg *dev)
 	if (!otg_debug_root)
 		return -ENOENT;
 
-	otg_debug_mode = debugfs_create_file("mode", 0664,
+	otg_debug_mode = debugfs_create_file("mode", 0222,
 						otg_debug_root, dev,
 						&otgfs_fops);
 	if (!otg_debug_mode)

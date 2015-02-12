@@ -403,13 +403,6 @@ config SENSORS_AK8975
 	  If you say yes here you get support for Asahi Kasei's
 	  orientation sensor AK8975.
 
-
-config USE_A2220_B
-	tristate "A2220_B Voice Processor Driver"
-	depends on I2C
-	help
-	  This option support audience A2220_B chip
-
 config EP93XX_PWM
 	tristate "EP93xx PWM support"
 	depends on ARCH_EP93XX
@@ -584,13 +577,6 @@ config SAMSUNG_JACK
 	---help---
 	  This is 3.5 PI EAR_JACK driver for Samsung devices.
 
-config SAMSUNG_EARJACK
-	bool "Modified 3.5 PI EAR_JACK driver for Samsung devices"
-	depends on INPUT
-	default n
-	---help---
-	  This is 3.5 PI EAR_JACK driver for Samsung devices.
-	  
 config HAPTIC_ISA1200
 	tristate "ISA1200 haptic support"
 	depends on I2C
