@@ -81,7 +81,7 @@ static void set_bln_state(unsigned int bln_state)
 
 static void bln_main(struct work_struct *work)
 {
-	int blink_ms;
+	unsigned int blink_ms;
 	u64 now;
 
 	if (bln_conf.blink_control) {
@@ -174,6 +174,9 @@ static ssize_t blink_interval_ms_write(struct device *dev,
 		cancel_delayed_work_sync(&bln_main_work);
 		wake_lock(&bln_wake_lock);
 		bln_conf.always_on = false;
+		schedule_delayed_work(&bln_main_work, 0);
+	} else if (delayed_work_pending(&bln_main_work) && bln_conf.blink_control) {
+		cancel_delayed_work_sync(&bln_main_work);
 		schedule_delayed_work(&bln_main_work, 0);
 	}
 
