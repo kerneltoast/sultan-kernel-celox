@@ -21,7 +21,7 @@
 #define KGSL_IOMMU_GLOBAL_MEM_SIZE	SZ_4M
 #define KGSL_IOMMU_TTBR1_SPLIT		2
 
-#define KGSL_MMU_ALIGN_SHIFT    13
+#define KGSL_MMU_ALIGN_SHIFT    15
 #define KGSL_MMU_ALIGN_MASK     (~((1 << KGSL_MMU_ALIGN_SHIFT) - 1))
 
 /* Identifier for the global page table */
