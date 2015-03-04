@@ -254,4 +254,4 @@ static int __init enhanced_bln_init(void)
 err:
 	return ret;
 }
-device_initcall(enhanced_bln_init);
+late_initcall(enhanced_bln_init);
