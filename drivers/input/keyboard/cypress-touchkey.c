@@ -296,7 +296,7 @@ static int i2c_touchkey_read(u8 reg, u8 * val, unsigned int len)
 	return err;
 }
 
-static int i2c_touchkey_write(u8 * val, unsigned int len, int from_bln)
+static int i2c_touchkey_write(u8 * val, unsigned int len, int from_ebln)
 {
 	int err = 0;
 	struct i2c_msg msg[1];
@@ -307,7 +307,7 @@ static int i2c_touchkey_write(u8 * val, unsigned int len, int from_bln)
 		return -ENODEV;
 	}
 
-	if ((touchkey_enable != 1) && !from_bln) {
+	if ((touchkey_enable != 1) && !from_ebln) {
 		printk(KERN_DEBUG "[TKEY] touchkey is not enabled.W\n");
 		return -ENODEV;
 	}
@@ -1046,12 +1046,12 @@ static void cypress_touchkey_enable_backlight(void)
 	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static void cypress_touchkey_disable_backlight(int bln_state)
+static void cypress_touchkey_disable_backlight(int ebln_state)
 {
 	signed char int_data[] ={0x20};
 
 	/* don't turn off leds if userspace wants them on */
-	if ((bln_state == BLN_OFF) && req_state == 1) {
+	if ((ebln_state == EBLN_OFF) && req_state == 1) {
 		cypress_touchkey_enable_backlight();
 		return;
 	}
@@ -1081,7 +1081,7 @@ static void cypress_touchkey_disable_led_vdd(void)
 	mutex_unlock(&touchkey_driver->mutex);
 }
 
-static struct bln_implementation cypress_touchkey_bln = {
+static struct ebln_implementation cypress_touchkey_ebln = {
 	.enable_led_reg = cypress_touchkey_enable_led_vdd,
 	.disable_led_reg = cypress_touchkey_disable_led_vdd,
 	.led_on = cypress_touchkey_enable_backlight,
@@ -1267,7 +1267,7 @@ if (get_hw_rev() >=0x02) {
 	set_touchkey_debug('K');
 
 #if defined(CONFIG_ENHANCED_BLN)
-	register_bln_implementation(&cypress_touchkey_bln);
+	register_ebln_implementation(&cypress_touchkey_ebln);
 #endif
 
 	mutex_unlock(&touchkey_driver->mutex);
