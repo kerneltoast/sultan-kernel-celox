@@ -21,21 +21,21 @@
 #ifndef _LINUX_ENHANCED_BLN_H
 #define _LINUX_ENHANCED_BLN_H
 enum {
-	BLN_OFF,
-	BLN_BLINK_OFF,
-	BLN_ON,
+	EBLN_OFF,
+	EBLN_BLINK_OFF,
+	EBLN_ON,
 };
 
-struct bln_implementation {
+struct ebln_implementation {
     void (*disable_led_reg)(void);
     void (*enable_led_reg)(void);
-    void (*led_off)(int bln_state);
+    void (*led_off)(int ebln_state);
     void (*led_on)(void);
 };
 
 #ifdef CONFIG_ENHANCED_BLN
-void register_bln_implementation(struct bln_implementation *imp);
+void register_ebln_implementation(struct ebln_implementation *imp);
 #else
-static inline void register_bln_implementation(struct bln_implementation *imp) { }
+static inline void register_ebln_implementation(struct ebln_implementation *imp) { }
 #endif
 #endif /* _LINUX_ENHANCED_BLN_H */
