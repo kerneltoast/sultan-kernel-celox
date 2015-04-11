@@ -108,7 +108,6 @@ static void ebln_main(struct work_struct *work)
 
 	if (ebln_conf.blink_control) {
 		if (blink_callback) {
-			blink_callback = false;
 			if (ebln_conf.blink_timeout_ms && !ebln_conf.always_on) {
 				now = ktime_to_ms(ktime_get());
 				if ((now - ebln_start_time) >= ebln_conf.blink_timeout_ms)
@@ -118,6 +117,7 @@ static void ebln_main(struct work_struct *work)
 				wake_unlock(&ebln_wake_lock);
 				return;
 			}
+			blink_callback = false;
 			blink_ms = ebln_conf.off_ms;
 			ebln_imp->led_off(EBLN_BLINK_OFF);
 		} else {
@@ -166,10 +166,7 @@ static ssize_t blink_control_write(struct device *dev,
 		return size;
 	}
 
-	if (data)
-		set_ebln_state(EBLN_ON);
-	else
-		set_ebln_state(EBLN_OFF);
+	set_ebln_state(data ? EBLN_ON : EBLN_OFF);
 
 	return size;
 }
