@@ -322,32 +322,33 @@ static struct input_handler cpu_boost_input_handler = {
 	.id_table	= cpu_boost_ids,
 };
 
-static int __init cpu_boost_init(void)
+static int __init cpu_input_boost_init(void)
 {
 	struct cpufreq_frequency_table *table = cpufreq_frequency_get_table(0);
 	int maxfreq = cpufreq_quick_get_max(0);
 	int b_level = 0, req_freq[3];
-	int curr, prev, i, ret = 1;
+	int i, ret = 1;
 
 	if (!maxfreq) {
 		pr_err("Failed to get max freq, input boost disabled\n");
 		goto err;
 	}
 
+	/* Calculate ideal boost freqs */
 	for (i = 0; i < 3; i++)
 		req_freq[i] = maxfreq * boost_factor[i] / BOOST_FACTOR_DIVISOR;
 
+	/* Find actual freqs closest to ideal boost freqs */
 	for (i = 0;; i++) {
-		curr = table[i].frequency - req_freq[b_level];
-		prev = table[i ? i - 1 : 0].frequency - req_freq[b_level];
+		int curr = table[i].frequency - req_freq[b_level];
+		int prev = table[i ? i - 1 : 0].frequency - req_freq[b_level];
 
 		if (!curr || (curr > 0 && prev < 0)) {
 			boost_freq[b_level] = table[i].frequency;
 			b_level++;
+			if (b_level == 3)
+				break;
 		}
-
-		if (b_level == 3)
-			break;
 	}
 
 	boost_wq = alloc_workqueue("cpu_input_boost_wq", WQ_HIGHPRI | WQ_NON_REENTRANT, 0);
@@ -372,7 +373,7 @@ static int __init cpu_boost_init(void)
 err:
 	return ret;
 }
-late_initcall(cpu_boost_init);
+late_initcall(cpu_input_boost_init);
 
 MODULE_AUTHOR("Sultanxda <sultanxda@gmail.com>");
 MODULE_DESCRIPTION("CPU Input Boost");
