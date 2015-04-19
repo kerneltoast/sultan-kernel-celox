@@ -67,11 +67,14 @@ static struct  m5mo_work_t *m5mo_sensorw;
 static struct  i2c_client *m5mo_client;
 static unsigned int config_csi;
 
+/* Low-power flash hack */
 #define BATT_LOW_POWER 35
 static struct delayed_work flash_work;
 static unsigned int snapshot_low_pwr = 0;
 static int req_flash_mode = 0;
 static DECLARE_COMPLETION(snapshot);
+static unsigned int force_lp_flash;
+module_param(force_lp_flash, uint, 0644);
 
 #if defined (CAMERA_WXGA_PREVIEW)
 static const struct m5mo_frmsizeenum m5mo_preview_sizes[] = {
@@ -1373,7 +1376,7 @@ static int m5mo_set_af(int val)
 // touch
 //	CAM_DEBUG("focus.touch = %d   focus.touchaf = %d", m5mo_ctrl->focus.touch,  m5mo_ctrl->focus.touchaf);
 	
-	if ((sec_get_batt_level() <= BATT_LOW_POWER) && req_flash_mode)
+	if (((sec_get_batt_level() <= BATT_LOW_POWER) || force_lp_flash) && req_flash_mode)
 		m5mo_set_flash(req_flash_mode);
 
 	if (m5mo_ctrl->focus.touchaf == 1) {
@@ -2170,7 +2173,7 @@ static long m5mo_set_sensor_mode(int mode)
 
 	case SENSOR_SNAPSHOT_MODE:
 		CAM_DEBUG("SENSOR_SNAPSHOT_MODE START");
-		if ((sec_get_batt_level() <= BATT_LOW_POWER) && req_flash_mode) {
+		if (((sec_get_batt_level() <= BATT_LOW_POWER) || force_lp_flash) && req_flash_mode) {
 			snapshot_low_pwr = 1;
 			init_completion(&snapshot);
 			schedule_delayed_work(&flash_work, 0);
@@ -2511,7 +2514,7 @@ int m5mo_sensor_open_init(const struct msm_camera_sensor_info *data)
 
 	cam_err("X");
 init_done:
-	if (sec_get_batt_level() <= BATT_LOW_POWER)
+	if ((sec_get_batt_level() <= BATT_LOW_POWER) || force_lp_flash)
 		m5mo_set_flash(req_flash_mode);
 	return rc;
 
@@ -2722,9 +2725,9 @@ int m5mo_sensor_ext_config(void __user *argp)
 		
 	case EXT_CFG_SET_FLASH:
 		req_flash_mode = cfg_data.value_1;
-		if ((sec_get_batt_level() > BATT_LOW_POWER) ||
-			(req_flash_mode == M5MO_FLASH_CAPTURE_OFF) ||
-			(req_flash_mode == M5MO_FLASH_MOVIE_ON))
+		if (((sec_get_batt_level() > BATT_LOW_POWER) && !force_lp_flash) ||
+			(req_flash_mode == M5MO_FLASH_CAPTURE_OFF ||
+			M5MO_FLASH_MOVIE_ON))
 			rc = m5mo_set_flash(req_flash_mode);
 		break;
 		
