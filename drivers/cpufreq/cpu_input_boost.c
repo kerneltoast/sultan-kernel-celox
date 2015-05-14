@@ -37,8 +37,6 @@ static DEFINE_PER_CPU(struct boost_policy, boost_info);
 static struct workqueue_struct *boost_wq;
 static struct work_struct boost_work;
 
-static DEFINE_MUTEX(boost_mutex);
-
 static bool boost_running;
 static bool suspended;
 static bool freqs_available __read_mostly;
@@ -161,12 +159,10 @@ static int cpu_do_boost(struct notifier_block *nb, unsigned long val, void *data
 	if (policy->cpu > 2)
 		return NOTIFY_OK;
 
-	mutex_lock(&boost_mutex);
-	b_freq = boost_freq[policy->cpu];
-	mutex_unlock(&boost_mutex);
-
-	if (!b_freq)
+	if (!freqs_available)
 		return NOTIFY_OK;
+
+	b_freq = boost_freq[policy->cpu];
 
 	switch (b->boost_state) {
 	case UNBOOST:
@@ -308,7 +304,6 @@ static ssize_t boost_freqs_write(struct device *dev,
 		return -EINVAL;
 
 	/* Freq order should be [high, mid, low], so always order it like that */
-	mutex_lock(&boost_mutex);
 	boost_freq[0] = max3(freq[0], freq[1], freq[2]);
 	boost_freq[2] = min3(freq[0], freq[1], freq[2]);
 
@@ -322,7 +317,6 @@ static ssize_t boost_freqs_write(struct device *dev,
 			break;
 		}
 	}
-	mutex_unlock(&boost_mutex);
 
 	freqs_available = true;
 
