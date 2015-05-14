@@ -49,8 +49,6 @@ static bool suspended;
 static u64 last_input_time;
 #define MIN_INPUT_INTERVAL (150 * USEC_PER_MSEC)
 
-#define NUM_CPUS CONFIG_NR_CPUS
-
 /**
  * Auto boost freq calculation:
  * Requested boost freqs = maxfreq * boost_factor[i] / BOOST_FACTOR_DIVISOR,
@@ -117,7 +115,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	/* Num of CPUs to be boosted based on how many of them are online */
-	switch (num_online_cpus() * 100 / NUM_CPUS) {
+	switch (num_online_cpus() * 100 / CONFIG_NR_CPUS) {
 	case 25:
 		num_cpus_to_boost += 2;
 		break;
@@ -134,7 +132,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	/* Boost freq to use based on how many CPUs to boost */
-	switch (num_cpus_to_boost * 100 / NUM_CPUS) {
+	switch (num_cpus_to_boost * 100 / CONFIG_NR_CPUS) {
 	case 25:
 		boost_level = HIGH;
 		break;
@@ -146,7 +144,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	/* Dual-core systems need more power */
-	if (NUM_CPUS == 2)
+	if (CONFIG_NR_CPUS == 2)
 		boost_level++;
 
 	/* Calculate boost duration */
@@ -214,9 +212,6 @@ static struct notifier_block cpu_do_boost_nb = {
 static void cpu_boost_early_suspend(struct early_suspend *handler)
 {
 	suspended = true;
-
-	if (cancel_delayed_work_sync(&restore_work))
-		cpu_unboost_all();
 }
 
 static void __cpuinit cpu_boost_late_resume(struct early_suspend *handler)
