@@ -42,6 +42,7 @@ static bool suspended;
 static bool freqs_available __read_mostly;
 static unsigned int boost_freq[3] __read_mostly;
 static unsigned int boost_ms[3];
+static unsigned int dual_core = (CONFIG_NR_CPUS == 2);
 static unsigned int enabled __read_mostly;
 
 static u64 last_input_time;
@@ -108,7 +109,7 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 
 	/* Calculate boost duration for each CPU (CPU0 gets the longest) */
 	for (cpu = 0; cpu < num_cpus_to_boost; cpu++)
-		boost_ms[cpu] = ((CONFIG_NR_CPUS - cpu) * 600) - (num_cpus_to_boost * 350);
+		boost_ms[cpu] = ((CONFIG_NR_CPUS - cpu) * 600) - (dual_core * num_cpus_to_boost * 350);
 
 	/* Prioritize boosting of online CPUs */
 	for_each_online_cpu(cpu) {
@@ -294,20 +295,29 @@ static struct kobject *cpu_iboost_kobject;
 static ssize_t boost_freqs_write(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
-	unsigned int freq[3], i = 0;
-	int ret = sscanf(buf, "%u %u %u", &freq[0], &freq[1], &freq[2]);
+	unsigned int i = 0, freq[3] = {0, 0, 0};
+	int ret;
 
-	if (ret != 3)
+	if (dual_core)
+		ret = sscanf(buf, "%u %u", &freq[0], &freq[1]);
+	else
+		ret = sscanf(buf, "%u %u %u", &freq[0], &freq[1], &freq[2]);
+
+	if (ret != min(CONFIG_NR_CPUS, 3))
 		return -EINVAL;
 
-	if (!freq[0] || !freq[1] || !freq[2])
+	if (!freq[0] || !freq[1] || (!freq[2] && !dual_core))
 		return -EINVAL;
 
 	/* Freq order should be [high, mid, low], so always order it like that */
 	boost_freq[0] = max3(freq[0], freq[1], freq[2]);
-	boost_freq[2] = min3(freq[0], freq[1], freq[2]);
 
-	while (++i) {
+	if (dual_core)
+		boost_freq[1] = min(freq[0], freq[1]);
+	else
+		boost_freq[2] = min3(freq[0], freq[1], freq[2]);
+
+	while (++i && !dual_core) {
 		if ((freq[i] == boost_freq[0]) ||
 			(freq[i] == boost_freq[2])) {
 			freq[i] = 0;
@@ -354,7 +364,14 @@ static ssize_t up_threshold_write(struct device *dev,
 static ssize_t boost_freqs_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u %u %u\n", boost_freq[0], boost_freq[1], boost_freq[2]);
+	int ret;
+
+	if (dual_core)
+		ret = sprintf(buf, "%u %u\n", boost_freq[0], boost_freq[1]);
+	else
+		ret = sprintf(buf, "%u %u %u\n", boost_freq[0], boost_freq[1], boost_freq[2]);
+
+	return ret;
 }
 
 static ssize_t enabled_read(struct device *dev,
