@@ -40,9 +40,9 @@ static struct work_struct boost_work;
 static bool boost_running;
 static bool suspended;
 static bool freqs_available __read_mostly;
+static bool dual_core = (CONFIG_NR_CPUS == 2);
 static unsigned int boost_freq[3] __read_mostly;
 static unsigned int boost_ms[3];
-static unsigned int dual_core = (CONFIG_NR_CPUS == 2);
 static unsigned int enabled __read_mostly;
 
 static u64 last_input_time;
@@ -108,8 +108,12 @@ static void __cpuinit cpu_boost_main(struct work_struct *work)
 	}
 
 	/* Calculate boost duration for each CPU (CPU0 gets the longest) */
-	for (cpu = 0; cpu < num_cpus_to_boost; cpu++)
-		boost_ms[cpu] = ((CONFIG_NR_CPUS - cpu) * 600) - (dual_core * num_cpus_to_boost * 350);
+	for (cpu = 0; cpu < num_cpus_to_boost; cpu++) {
+		if (dual_core)
+			boost_ms[cpu] = (CONFIG_NR_CPUS - cpu) * 600;
+		else
+			boost_ms[cpu] = ((CONFIG_NR_CPUS - cpu) * 600) - (num_cpus_to_boost * 350);
+	}
 
 	/* Prioritize boosting of online CPUs */
 	for_each_online_cpu(cpu) {
