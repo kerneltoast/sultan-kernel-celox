@@ -245,7 +245,7 @@ static struct attribute_group ebln_attr_group = {
 
 static struct miscdevice ebln_device = {
 	.minor = MISC_DYNAMIC_MINOR,
-	.name = "enhanced_bln",
+	.name = "bln",
 };
 /**************************** SYSFS END ****************************/
 
